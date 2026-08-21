@@ -63,6 +63,27 @@ export function analyzeIntent(input: RouteIntentInput): RouteProfile {
   if (signals.has("mcp")) {
     return { mode: "mcp", signals };
   }
+  if (signals.has("agent-system")) {
+    return { mode: "agent-system", signals };
+  }
+  if (signals.has("security")) {
+    return { mode: "security", signals };
+  }
+  if (signals.has("spec-planning")) {
+    return { mode: "spec", signals };
+  }
+  if (signals.has("domain-design")) {
+    return { mode: "domain-modeling", signals };
+  }
+  if (signals.has("backend-api")) {
+    return { mode: "backend-api", signals };
+  }
+  if (signals.has("research")) {
+    return { mode: "research", signals };
+  }
+  if (signals.has("feature-build")) {
+    return { mode: "feature-build", signals };
+  }
 
   return { mode: "general", signals };
 }

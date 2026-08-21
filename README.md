@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/skills-134-06b6d4?style=for-the-badge&labelColor=0f172a" alt="134 skills">
+  <img src="https://img.shields.io/badge/skills-172-06b6d4?style=for-the-badge&labelColor=0f172a" alt="172 skills">
   <img src="https://img.shields.io/badge/MCP-ready-14b8a6?style=for-the-badge&logo=modelcontextprotocol&labelColor=0f172a" alt="MCP ready">
   <img src="https://img.shields.io/badge/Codex-ready-111827?style=for-the-badge&logo=openai&labelColor=0f172a" alt="Codex ready">
   <img src="https://img.shields.io/badge/Trusted%20Publishing-OIDC-8b5cf6?style=for-the-badge&logo=githubactions&labelColor=0f172a" alt="Trusted publishing">
@@ -25,7 +25,7 @@
 
 # Kilo-Kit: MCP Workflow Gates for Coding Agents
 
-> **Version:** 1.3.1
+> **Version:** 1.4.0
 > **Author:** Kilo-Kit Team
 > **License:** Apache 2.0
 
@@ -226,15 +226,19 @@ C4 memory stores structured facts, decisions, orchestration sessions, and workfl
 | Path | Purpose |
 | --- | --- |
 | `skills/SKILLS_INDEX.md` | Lightweight index for routing and discovery. |
-| `skills/kilo-kit/` | Core Kilo-Kit framework skills. |
-| `skills/engineering/` | Engineering and framework workflows. |
-| `skills/productivity/` | Agent workflow and planning skills. |
-| `skills/problem-solving/` | Debugging and reasoning skills. |
-| `skills/design/` | Frontend and product design skills. |
-| `skills/operations/` | DevOps, MCP, shell, browser, and server skills. |
-| `skills/writing-docs/` | Documents, slides, PDFs, spreadsheets, and diagrams. |
+| `skills/agent-frameworks/` | Multi-agent orchestration, state machines, memory, and MCP patterns. |
+| `skills/engineering/` | Engineering architectures, testing, TDD, APIs, databases, and evaluation. |
+| `skills/productivity/` | Spec-driven development, planning, and agent coordination. |
+| `skills/security/` | AI guardrails, threat modeling, and vulnerability scanning. |
+| `skills/problem-solving/` | Root-cause analysis, debugging, and sequential reasoning. |
+| `skills/design/` | Frontend design, UI styling, Tailwind, and aesthetic systems. |
+| `skills/operations/` | DevOps, MCP management, observability, and server infrastructure. |
+| `skills/ai-media/` | Multimodal AI processing, media encoding, and search optimization. |
+| `skills/games/` | 2D/3D, Web, and mobile game development workflows. |
+| `skills/writing-docs/` | Structured technical documentation, specifications, and slide decks. |
+| `skills/kilo-kit/` | Core Kilo-Kit framework and C4 protocol gates. |
 
-Install the full skill library:
+Install the full skill library (172 skills):
 
 ```bash
 npx skills@latest add VoDaiLocz/KILO-KIT
@@ -308,21 +312,21 @@ Configure npm once:
 | Field | Value |
 | --- | --- |
 | Provider | GitHub Actions |
-| Repository | `VoDaiLocz/KILO-KIT` |
+| Repository | `VoDaiLocz/kilo-kit-mcp` |
 | Workflow filename | `publish.yml` |
 
-Then run the `Publish npm package` workflow or push a version tag:
+Then run the `Publish Packages` workflow or push a version tag:
 
 ```bash
-git tag v1.3.1
-git push origin v1.3.1
+git tag v1.4.0
+git push origin v1.4.0
 ```
 
-The release workflow runs build, typecheck, tests, smoke, skill validation, package dry-run, and `npm publish --access public --ignore-scripts`.
+The release workflow runs build, typecheck, tests (35/35 passed), smoke check, skill validation (177/177 passed), package dry-run, and publishes to GitHub Packages & npm.
 
 ## Roadmap
 
-- v1.3.x: C4 gate hardening, memory/audit clarity, documentation cleanup.
+- v1.4.0: 12 Standardized Workflow DAG pipelines, 172 curated skills catalog, GitHub Packages integration.
 - v2.0.0: Local Visual Workflow Builder for C4 sessions, memory, and audit review.
 
 ## License

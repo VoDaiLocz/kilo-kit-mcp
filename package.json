@@ -1,16 +1,16 @@
 {
   "name": "@vodailoc/kilo-kit-mcp",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "MCP server for safer coding agents with skill routing, C4 workflow gates, memory checks, and verification.",
   "license": "Apache-2.0",
   "author": "Kilo-Kit Team",
-  "homepage": "https://github.com/VoDaiLocz/KILO-KIT#readme",
+  "homepage": "https://github.com/VoDaiLocz/kilo-kit-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VoDaiLocz/KILO-KIT.git"
+    "url": "git+https://github.com/VoDaiLocz/kilo-kit-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/VoDaiLocz/KILO-KIT/issues"
+    "url": "https://github.com/VoDaiLocz/kilo-kit-mcp/issues"
   },
   "bin": {
     "kilo-kit-mcp": "mcp/dist/server.js",

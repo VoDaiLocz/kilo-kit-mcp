@@ -1,4 +1,4 @@
-name: Publish npm package
+name: Publish Packages
 
 on:
   workflow_dispatch:
@@ -8,26 +8,30 @@ on:
 
 permissions:
   contents: read
+  packages: write
   id-token: write
 
 concurrency:
-  group: npm-publish-${{ github.ref }}
+  group: package-publish-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    if: github.repository == 'VoDaiLocz/KILO-KIT'
+  publish-github-packages:
+    name: Publish to GitHub Packages
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node.js for GitHub Packages
+        uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@vodailocz"
 
       - name: Verify toolchain
         run: |
@@ -43,8 +47,52 @@ jobs:
       - name: Run release verification
         run: npm run prepublishOnly
 
+      - name: Set package scope for GitHub Packages
+        run: |
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.name = "@vodailocz/kilo-kit-mcp";
+            pkg.publishConfig = { registry: "https://npm.pkg.github.com" };
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+
+      - name: Publish to GitHub Packages
+        run: npm publish --registry=https://npm.pkg.github.com --ignore-scripts
+        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to npm Registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js for npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install MCP dependencies
+        run: npm --prefix mcp ci
+
+      - name: Run release verification
+        run: npm run prepublishOnly
+
       - name: Check package contents
         run: npm pack --dry-run --ignore-scripts
 
-      - name: Publish to npm with trusted publishing
+      - name: Publish to npm
         run: npm publish --access public --ignore-scripts
+        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

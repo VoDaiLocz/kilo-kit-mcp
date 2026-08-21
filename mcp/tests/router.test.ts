@@ -151,4 +151,130 @@ describe("intent router", () => {
     ]);
     expect((result as any).nextAction).toContain("workflow order");
   });
+
+  it("routes feature build requests to brainstorming, planning, and SDD workflow", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Build feature authentication system with passkey support",
+      context: { mode: "coding" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("feature-build");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "productivity/brainstorming",
+      "productivity/writing-plans",
+      "productivity/subagent-driven-development",
+      "productivity/verification-before-completion",
+    ]);
+  });
+
+  it("routes spec-driven planning requests to spec-driven-development workflow", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Viết PRD và spec-driven feature specification với user stories và acceptance criteria",
+      context: { mode: "spec" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("spec");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "productivity/brainstorming",
+      "productivity/spec-driven-development",
+      "engineering/to-tickets",
+      "productivity/writing-plans",
+    ]);
+  });
+
+  it("routes multi-agent architecture requests to agent-system workflow", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Design multi-agent orchestration state machine with agent memory and evals",
+      context: { mode: "architecture" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("agent-system");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "agent-frameworks/multi-agent-orchestration",
+      "agent-frameworks/workflow-state-machines",
+      "agent-frameworks/agent-memory",
+      "operations/agent-observability",
+    ]);
+  });
+
+  it("routes security audit requests to security and vulnerability scan workflow", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Perform security audit, scan vulnerabilities and guardrails against prompt injection",
+      context: { mode: "security" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("security");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "security/ai-guardrails",
+      "kilo-kit/security",
+      "engineering/vulnerability-scanner",
+      "productivity/verification-before-completion",
+    ]);
+  });
+
+  it("routes domain modeling requests to wayfinder, domain-modeling and codebase-design", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Extract domain model, ubiquitous language, and entity aggregate boundaries",
+      context: { mode: "architecture" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("domain-modeling");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "engineering/wayfinder",
+      "engineering/domain-modeling",
+      "engineering/codebase-design",
+      "productivity/verification-before-completion",
+    ]);
+  });
+
+  it("routes backend API requests to backend development and database design workflow", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Build backend API endpoint with database schema migration",
+      context: { mode: "coding" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("backend-api");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "productivity/brainstorming",
+      "engineering/backend-development",
+      "engineering/database-design",
+      "productivity/verification-before-completion",
+    ]);
+  });
+
+  it("routes technical research requests to wayfinder, research and domain-modeling", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const result = routeIntent(registry, {
+      message: "Research and investigate upstream library compatibility for the project",
+      context: { mode: "research" },
+      limit: 3,
+    });
+
+    expect(result.taskMode).toBe("research");
+    expect(result.workflow.map((step) => step.skill.id)).toEqual([
+      "engineering/wayfinder",
+      "engineering/research",
+      "engineering/domain-modeling",
+    ]);
+  });
 });
+

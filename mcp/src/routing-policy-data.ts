@@ -66,11 +66,39 @@ export const SIGNAL_PATTERNS: SignalPattern[] = [
   },
   {
     signal: "mcp",
-    patterns: [/\bmcp\b/i],
+    patterns: [/\bmcp\b/i, /\bmodel context protocol\b/i],
   },
   {
     signal: "verification",
     patterns: [/\bverify\b/i, /\bverification\b/i, /\bvalidate\b/i, /\blint\b/i, /\bcomplete\b/i, /\bdone\b/i],
+  },
+  {
+    signal: "feature-build",
+    patterns: [/\bbuild feature\b/i, /\bimplement feature\b/i, /\bxây dựng tính năng\b/i, /\btính năng mới\b/i],
+  },
+  {
+    signal: "spec-planning",
+    patterns: [/\bspec\b/i, /\bprd\b/i, /\bspec-driven\b/i, /\buser stor(?:y|ies)\b/i, /\bacceptance criteria\b/i],
+  },
+  {
+    signal: "agent-system",
+    patterns: [/\bmulti-agent\b/i, /\borchestrat(?:e|ion)\b/i, /\bstate machine\b/i, /\bagent memory\b/i, /\beval(?:s|uation)\b/i, /\bguardrail\b/i],
+  },
+  {
+    signal: "security",
+    patterns: [/\bsecurity\b/i, /\bvulnerabilit(?:y|ies)\b/i, /\bowasp\b/i, /\bpenetration\b/i, /\bguardrails?\b/i],
+  },
+  {
+    signal: "domain-design",
+    patterns: [/\bdomain model\b/i, /\bddd\b/i, /\bentit(?:y|ies)\b/i, /\baggregate\b/i, /\bcodebase design\b/i],
+  },
+  {
+    signal: "backend-api",
+    patterns: [/\bbackend api\b/i, /\brest api\b/i, /\bdatabase schema\b/i, /\bmigration\b/i, /\bendpoint\b/i],
+  },
+  {
+    signal: "research",
+    patterns: [/\bresearch\b/i, /\binvestigat(?:e|ion)\b/i, /\bfind out\b/i, /\btìm hiểu\b/i],
   },
 ];
 
@@ -120,6 +148,8 @@ export const SKILL_SIGNAL_WEIGHTS: Record<string, Record<string, number>> = {
     "ui-work": 34,
     "workflow-optimization": 8,
     architecture: 5,
+    "feature-build": 20,
+    "spec-planning": 25,
   },
   "design/frontend-design": {
     "ui-work": 58,
@@ -138,6 +168,40 @@ export const SKILL_SIGNAL_WEIGHTS: Record<string, Record<string, number>> = {
   "operations/mcp-management": {
     mcp: 32,
     "context-engineering": 8,
+  },
+  "productivity/subagent-driven-development": {
+    "feature-build": 48,
+    architecture: 10,
+  },
+  "productivity/spec-driven-development": {
+    "spec-planning": 58,
+    "feature-build": 16,
+  },
+  "agent-frameworks/multi-agent-orchestration": {
+    "agent-system": 56,
+    architecture: 14,
+  },
+  "agent-frameworks/workflow-state-machines": {
+    "agent-system": 50,
+    architecture: 18,
+  },
+  "security/ai-guardrails": {
+    security: 54,
+    "agent-system": 24,
+  },
+  "kilo-kit/security": {
+    security: 48,
+  },
+  "engineering/domain-modeling": {
+    "domain-design": 56,
+    architecture: 20,
+  },
+  "engineering/backend-development": {
+    "backend-api": 54,
+    architecture: 12,
+  },
+  "engineering/research": {
+    research: 54,
   },
 };
 
@@ -252,6 +316,155 @@ export const WORKFLOWS: Record<string, WorkflowDefinition[]> = {
       id: "productivity/verification-before-completion",
       role: "quality",
       reason: "Run MCP build/test/smoke evidence before completion claims.",
+    },
+  ],
+  "feature-build": [
+    {
+      id: "productivity/brainstorming",
+      role: "prepare",
+      reason: "Clarify user intent, requirements, and design boundaries before writing code.",
+    },
+    {
+      id: "productivity/writing-plans",
+      role: "prepare",
+      reason: "Create structured implementation plan with task dependencies and checkpoints.",
+    },
+    {
+      id: "productivity/subagent-driven-development",
+      role: "primary",
+      reason: "Execute implementation tasks with independent review loops.",
+    },
+    {
+      id: "productivity/verification-before-completion",
+      role: "quality",
+      reason: "Verify tests and requirements before making completion claims.",
+    },
+  ],
+  spec: [
+    {
+      id: "productivity/brainstorming",
+      role: "prepare",
+      reason: "Align on feature scope and user journeys.",
+    },
+    {
+      id: "productivity/spec-driven-development",
+      role: "primary",
+      reason: "Structure executable specifications with Given/When/Then acceptance criteria.",
+    },
+    {
+      id: "engineering/to-tickets",
+      role: "support",
+      reason: "Decompose specification into independently testable vertical slices.",
+    },
+    {
+      id: "productivity/writing-plans",
+      role: "support",
+      reason: "Generate concrete implementation plan from the approved specification.",
+    },
+  ],
+  "agent-system": [
+    {
+      id: "agent-frameworks/multi-agent-orchestration",
+      role: "primary",
+      reason: "Define multi-agent topology, supervisor routing, and handoff protocols.",
+    },
+    {
+      id: "agent-frameworks/workflow-state-machines",
+      role: "support",
+      reason: "Model agent transitions, checkpointing, and durable execution state machines.",
+    },
+    {
+      id: "agent-frameworks/agent-memory",
+      role: "support",
+      reason: "Configure hierarchical memory and fact supersession loops.",
+    },
+    {
+      id: "operations/agent-observability",
+      role: "quality",
+      reason: "Trace tool calls, token budgets, and loop detection metrics.",
+    },
+  ],
+  security: [
+    {
+      id: "security/ai-guardrails",
+      role: "prepare",
+      reason: "Evaluate threat models, prompt injection risks, and sandbox boundaries.",
+    },
+    {
+      id: "kilo-kit/security",
+      role: "primary",
+      reason: "Apply secure coding principles and OWASP mitigations.",
+    },
+    {
+      id: "engineering/vulnerability-scanner",
+      role: "support",
+      reason: "Scan attack surface and prioritize security remediation.",
+    },
+    {
+      id: "productivity/verification-before-completion",
+      role: "quality",
+      reason: "Run automated security checks and verification gates.",
+    },
+  ],
+  "domain-modeling": [
+    {
+      id: "engineering/wayfinder",
+      role: "prepare",
+      reason: "Navigate codebase orientation and discover domain boundaries.",
+    },
+    {
+      id: "engineering/domain-modeling",
+      role: "primary",
+      reason: "Extract ubiquitous language, entity relationships, and aggregate boundaries.",
+    },
+    {
+      id: "engineering/codebase-design",
+      role: "support",
+      reason: "Design deep module interfaces and decoupled seam boundaries.",
+    },
+    {
+      id: "productivity/verification-before-completion",
+      role: "quality",
+      reason: "Verify model consistency against codebase implementation.",
+    },
+  ],
+  "backend-api": [
+    {
+      id: "productivity/brainstorming",
+      role: "prepare",
+      reason: "Clarify API contracts, request/response schemas, and data boundaries.",
+    },
+    {
+      id: "engineering/backend-development",
+      role: "primary",
+      reason: "Implement robust API endpoints, middleware, and business logic.",
+    },
+    {
+      id: "engineering/database-design",
+      role: "support",
+      reason: "Optimize schema design, indexing strategy, and database access patterns.",
+    },
+    {
+      id: "productivity/verification-before-completion",
+      role: "quality",
+      reason: "Run integration tests and static analysis before completion.",
+    },
+  ],
+  research: [
+    {
+      id: "engineering/wayfinder",
+      role: "prepare",
+      reason: "Locate primary entry points and relevant architectural components.",
+    },
+    {
+      id: "engineering/research",
+      role: "primary",
+      reason: "Investigate against high-trust primary sources and record findings.",
+    },
+    {
+      id: "engineering/domain-modeling",
+      role: "support",
+      reason: "Refine domain definitions and update project documentation.",
     },
   ],
 };

@@ -1,6 +1,6 @@
 # 🔌 Kilo-Kit MCP Server
 
-> **Version:** 1.3.1
+> **Version:** 1.4.0
 > **Mode:** Read-only Skill Registry + Validator
 > **Transport:** stdio
 
@@ -53,7 +53,7 @@ Expected verification:
 
 ```text
 Test Files  10 passed
-Tests       28 passed
+Tests       35 passed
 MCP smoke check passed.
 ```
 
