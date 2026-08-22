@@ -67,7 +67,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     {
       instructions:
-        "For substantive coding, debugging, refactoring, review, publishing, or project-work requests, call kilo_orchestrate_task before implementation. If it returns brainstorming_required, load productivity/brainstorming with kilo_get_skill and get user approval before coding. After approval, call kilo_orchestrate_task again with the same sessionId and brainstormingApproved=true. If it returns awaiting_memory_confirmation, accept or reject memory suggestions before execution. When it returns ready, load firstSkillToLoad with kilo_get_skill, inspect any additional relevant skills available in the host agent, follow the finalWorkflow, and satisfy verificationGate before claiming completion. For read-only requests, kilo_route_intent is acceptable. Route telemetry is in-memory by default and only persists when KILO_KIT_WRITE_DECISIONS=true.",
+        "CRITICAL: You MUST call kilo_orchestrate_task as your FIRST action for any user request involving code, debugging, bug fixes, UI, features, refactoring, or project work. Never jump directly into reading or editing files with native tools without calling kilo_orchestrate_task first. Follow the returned nextAction and workflow skills in order.",
     },
   );
 
@@ -76,7 +76,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Kilo-Kit C4 Orchestrate Task",
       description:
-        "Central C4 orchestration gate. Routes internally, requires the real /brainstorming skill before substantive work, checks memory suggestions, and releases the post-brainstorming workflow after approval.",
+        "MANDATORY: Call this tool FIRST before diagnosing, debugging, analyzing, creating, or modifying any code, UI, backend, or project files. Determines task mode, selects required workflow skills, enforces brainstorming gating, and orchestrates the execution flow.",
       inputSchema: {
         message: z.string().min(1).max(4000).describe("Current user request or task summary."),
         context: z
@@ -200,7 +200,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Route Current Intent to Skills",
       description:
-        "Recommend the best Kilo-Kit skills for the current chat request and optional repo context. Call this before choosing a workflow skill.",
+        "Recommend the best Kilo-Kit skills for any user request, bug fix, feature, UI task, or coding issue. Call before selecting or executing a workflow skill.",
       inputSchema: {
         message: z.string().min(1).max(4000).describe("Current user request or task summary."),
         context: z
