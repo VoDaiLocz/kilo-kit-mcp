@@ -276,5 +276,37 @@ describe("intent router", () => {
       "engineering/domain-modeling",
     ]);
   });
+
+  it("routes Vietnamese requests accurately for UI, bug fixes, features and backend API", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    const uiResult = routeIntent(registry, {
+      message: "tạo cho tôi trang login với React và Tailwind CSS",
+      limit: 3,
+    });
+    expect(uiResult.taskMode).toBe("ui");
+    expect(uiResult.recommended[0]?.skill.id).toBe("design/frontend-design");
+
+    const bugResult = routeIntent(registry, {
+      message: "sửa lỗi authentication cho tôi, nó bị lỗi khi gọi API",
+      limit: 3,
+    });
+    expect(bugResult.taskMode).toBe("bug");
+    expect(bugResult.recommended[0]?.skill.id).toBe("engineering/diagnose");
+
+    const featResult = routeIntent(registry, {
+      message: "thêm chức năng upload ảnh cho user profile, validate file size và format",
+      limit: 3,
+    });
+    expect(featResult.taskMode).toBe("feature-build");
+    expect(featResult.workflow.map((step) => step.skill.id)).toContain("productivity/subagent-driven-development");
+
+    const apiResult = routeIntent(registry, {
+      message: "viết rest api endpoint đăng nhập với jwt và migration csdl",
+      limit: 3,
+    });
+    expect(apiResult.taskMode).toBe("backend-api");
+    expect(apiResult.recommended[0]?.skill.id).toBe("engineering/backend-development");
+  });
 });
 

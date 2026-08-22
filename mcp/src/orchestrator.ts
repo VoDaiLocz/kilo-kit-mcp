@@ -60,7 +60,7 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
         options.memory.recordDecision({ suggestionKey, decision });
       }
 
-      const verificationGate = buildVerificationGate(acceptedSuggestions);
+      const verificationGate = buildVerificationGate(acceptedSuggestions, session);
       const finalWorkflow = state === "ready" ? executableWorkflow(session) : undefined;
       const firstSkillToLoad =
         state === "brainstorming_required" ? findSkillById(options.registry, "productivity/brainstorming") : finalWorkflow?.[0]?.skill;
@@ -249,18 +249,41 @@ function findSkillById(registry: SkillRegistry, id: string): SkillRecord | undef
   }
 }
 
-function buildVerificationGate(acceptedSuggestions: MemorySuggestion[]): VerificationGate {
+function buildVerificationGate(
+  acceptedSuggestions: MemorySuggestion[],
+  session?: OrchestrationSession,
+): VerificationGate {
   const commands = acceptedSuggestions.flatMap((suggestion) => {
     const commands = suggestion.value.commands;
     return Array.isArray(commands) ? commands.filter((command): command is string => typeof command === "string") : [];
   });
 
+  if (commands.length > 0) {
+    return {
+      commands: [...new Set(commands)],
+      reason: "Memory-confirmed verification commands must pass before completion.",
+    };
+  }
+
+  const files = session?.context?.files ?? [];
+  const projectCommands: string[] = [];
+
+  if (files.some((f) => /package\.json|package-lock\.json|\.tsx?$|\.jsx?$/.test(f))) {
+    projectCommands.push("npm test");
+  } else if (files.some((f) => /pyproject\.toml|requirements\.txt|setup\.py|\.py$/.test(f))) {
+    projectCommands.push("pytest");
+  } else if (files.some((f) => /Cargo\.toml|\.rs$/.test(f))) {
+    projectCommands.push("cargo test");
+  } else if (files.some((f) => /go\.mod|\.go$/.test(f))) {
+    projectCommands.push("go test ./...");
+  }
+
   return {
-    commands: commands.length > 0 ? [...new Set(commands)] : ["npm --prefix mcp test", "npm --prefix mcp run typecheck"],
+    commands: projectCommands,
     reason:
-      commands.length > 0
-        ? "Memory-confirmed verification commands must pass before completion."
-        : "Default MCP verification gate for C4 orchestration.",
+      projectCommands.length > 0
+        ? "Inferred project verification commands before completion."
+        : "Run the project's native verification commands (test, lint, typecheck) before completion.",
   };
 }
 
@@ -276,10 +299,25 @@ function buildNextAction(
   if (state === "awaiting_memory_confirmation") {
     return `Accept or reject memory suggestions before execution: ${pendingSuggestions.map((item) => item.key).join(", ")}.`;
   }
-  if (firstSkillToLoad) {
-    return `Load ${firstSkillToLoad.id} with kilo_get_skill, then follow the final workflow. IMPORTANT: Do NOT rely solely on this workflow. You MUST also scan your full internal skill list (in your system prompt) and use view_file to load any other relevant skills before coding.`;
+  if (state === "ready") {
+    const workflow = executableWorkflow(session);
+    if (workflow.length > 0) {
+      const order = workflow.map((step) => step.skill.id).join(" -> ");
+      const stepLines = workflow
+        .map((step, idx) => `${idx + 1}. [${step.role}] ${step.skill.id}: ${step.reason}`)
+        .join("\n");
+      return [
+        `Load skills in workflow order: ${order}. Start with ${workflow[0]?.skill.id} using kilo_get_skill.`,
+        `Execute the workflow steps in order:`,
+        stepLines,
+        `Satisfy the verification gate before claiming completion.`,
+      ].join("\n");
+    }
   }
-  return session.route.nextAction + " IMPORTANT: You MUST also scan your full internal skill list and load any other relevant skills before coding.";
+  if (firstSkillToLoad) {
+    return `Load ${firstSkillToLoad.id} with kilo_get_skill, then follow the final workflow.`;
+  }
+  return session.route.nextAction;
 }
 
 function executableWorkflow(session: OrchestrationSession): RouteWorkflowStep[] {
@@ -295,7 +333,14 @@ function isSubstantiveWork(session: OrchestrationSession): boolean {
 }
 
 function isReadOnlyRequest(message: string): boolean {
-  return /\b(status|show|read|explain|what is|what's|la sao|là sao)\b/i.test(message);
+  if (
+    /(fix|sửa|build|tạo|thêm|add|implement|refactor|write|viết|update|cập nhật|change|thay đổi|delete|remove|xóa|install|cài|tối ưu|chậm|rối|bảo trì|tách|lỗ hổng|rò rỉ|test)/i.test(
+      message,
+    )
+  ) {
+    return false;
+  }
+  return /\b(status|show|read|explain|what is|what's|la sao|là sao|giải thích|là gì)\b/i.test(message);
 }
 
 function toJsonObject(value: unknown): Record<string, unknown> {

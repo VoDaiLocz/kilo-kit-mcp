@@ -51,17 +51,20 @@ export function analyzeIntent(input: RouteIntentInput): RouteProfile {
   if (signals.has("workflow-optimization")) {
     return { mode: "workflow-optimization", signals };
   }
-  if (signals.has("ui-work")) {
-    return { mode: "ui", signals };
-  }
   if (signals.has("bug-fix") && signals.has("test-first")) {
     return { mode: "bug-test-first", signals };
   }
   if (signals.has("bug-fix")) {
     return { mode: "bug", signals };
   }
-  if (signals.has("mcp")) {
-    return { mode: "mcp", signals };
+  if (signals.has("feature-build")) {
+    return { mode: "feature-build", signals };
+  }
+  if (signals.has("backend-api")) {
+    return { mode: "backend-api", signals };
+  }
+  if (signals.has("ui-work")) {
+    return { mode: "ui", signals };
   }
   if (signals.has("agent-system")) {
     return { mode: "agent-system", signals };
@@ -72,17 +75,17 @@ export function analyzeIntent(input: RouteIntentInput): RouteProfile {
   if (signals.has("spec-planning")) {
     return { mode: "spec", signals };
   }
-  if (signals.has("domain-design")) {
+  if (signals.has("domain-design") || signals.has("architecture")) {
     return { mode: "domain-modeling", signals };
   }
-  if (signals.has("backend-api")) {
-    return { mode: "backend-api", signals };
+  if (signals.has("test-first")) {
+    return { mode: "bug-test-first", signals };
+  }
+  if (signals.has("mcp")) {
+    return { mode: "mcp", signals };
   }
   if (signals.has("research")) {
     return { mode: "research", signals };
-  }
-  if (signals.has("feature-build")) {
-    return { mode: "feature-build", signals };
   }
 
   return { mode: "general", signals };
@@ -209,5 +212,10 @@ function buildQuery(input: RouteIntentInput): string {
 }
 
 function normalizeText(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .toLowerCase()
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

@@ -1,6 +1,6 @@
 {
   "name": "@kilo-kit/mcp",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Kilo-Kit MCP server for skill routing, skill loading, and validation.",
   "type": "module",
   "private": true,

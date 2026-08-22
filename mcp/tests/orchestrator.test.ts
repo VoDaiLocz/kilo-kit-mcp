@@ -82,4 +82,49 @@ describe("C4 orchestrator", () => {
     expect(ready.finalWorkflow?.map((step) => step.skill.id)).not.toContain("productivity/brainstorming");
     expect(ready.verificationGate.commands).toContain("npm --prefix mcp test");
   });
+
+  it("treats 'explain how to fix' as substantive work requiring brainstorming", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+    const orchestrator = createOrchestrator({
+      registry,
+      memory: createInMemoryOrchestrationMemory(),
+    });
+
+    const result = orchestrator.orchestrate({
+      message: "explain how to fix this bug in the router",
+      context: { mode: "coding" },
+    });
+
+    expect(result.state).toBe("brainstorming_required");
+    expect(result.taskMode).toBe("bug");
+  });
+
+  it("infers project-specific verification commands based on project context files", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+    const orchestrator = createOrchestrator({
+      registry,
+      memory: createInMemoryOrchestrationMemory(),
+    });
+
+    const pyResult = orchestrator.orchestrate({
+      message: "Build feature user authentication",
+      context: { files: ["pyproject.toml", "src/auth.py"] },
+      brainstormingApproved: true,
+    });
+    expect(pyResult.verificationGate.commands).toEqual(["pytest"]);
+
+    const nodeResult = orchestrator.orchestrate({
+      message: "tạo trang login với React và Tailwind",
+      context: { files: ["package.json", "src/Login.tsx"] },
+      brainstormingApproved: true,
+    });
+    expect(nodeResult.verificationGate.commands).toEqual(["npm test"]);
+
+    const genericResult = orchestrator.orchestrate({
+      message: "General task without files",
+      brainstormingApproved: true,
+    });
+    expect(genericResult.verificationGate.commands).toEqual([]);
+    expect(genericResult.verificationGate.reason).toContain("native verification");
+  });
 });
