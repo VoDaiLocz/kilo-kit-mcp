@@ -108,7 +108,7 @@ function replaceOrAppendBlock(current: string, block: string): string {
 
 function buildBootstrapBlock(target: BootstrapTarget): string {
   return `${START_MARKER}
-## Mandatory KILO-KIT C4 Workflow Protocol
+## Kilo-Kit C4 Workflow Protocol
 
 Applies to: ${target.displayName}, Antigravity, Gemini CLI, Claude Code, OpenAI Codex
 
