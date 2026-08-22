@@ -108,22 +108,20 @@ function replaceOrAppendBlock(current: string, block: string): string {
 
 function buildBootstrapBlock(target: BootstrapTarget): string {
   return `${START_MARKER}
-## Kilo-Kit C4 Workflow
+## Mandatory KILO-KIT C4 Workflow Protocol
 
-Applies to: ${target.displayName}
+Applies to: ${target.displayName}, Antigravity, Gemini CLI, Claude Code, OpenAI Codex
 
-For substantive coding, debugging, refactoring, review, publishing, or project-work requests:
+### CRITICAL HARD-GATE:
+BEFORE reading, diagnosing, or editing any file with native tools (Read/Edit/Bash), you MUST call MCP tool \`kilo_orchestrate_task\` (via \`call_mcp_tool\`) with the user's request.
 
-1. Call \`kilo_orchestrate_task\` before implementation.
-2. If state is \`brainstorming_required\`, load \`productivity/brainstorming\` with \`kilo_get_skill\`, follow it, and get user approval.
-3. Call \`kilo_orchestrate_task\` again with the same \`sessionId\` and \`brainstormingApproved=true\`.
-4. If state is \`awaiting_memory_confirmation\`, accept or reject memory suggestions before execution.
-5. When state is \`ready\`, load \`firstSkillToLoad\` with \`kilo_get_skill\`.
-6. Also inspect the host agent's own available skill list and load any other relevant skills before coding.
-7. Follow \`finalWorkflow\`.
-8. Satisfy \`verificationGate\` before claiming completion.
+1. **Gate 1 (Hard-Gate):** Call \`kilo_orchestrate_task\` first on every non-trivial task.
+2. **Gate 2 (Brainstorming):** If state is \`brainstorming_required\`, load \`productivity/brainstorming\` with \`kilo_get_skill\`, present diagnosis/plan, and get approval.
+3. **Gate 3 (Approval):** Call \`kilo_orchestrate_task\` again with the same \`sessionId\` and \`brainstormingApproved=true\`.
+4. **Gate 4 (Execution):** When state is \`ready\`, load workflow skills with \`kilo_get_skill\` in order.
+5. **Gate 5 (Verification):** Run \`verificationGate\` commands before claiming completion.
 
-For read-only requests, \`kilo_route_intent\` is enough.
+Do NOT bypass KILO-KIT orchestration to jump directly into editing code or modifying CSS/JS files.
 ${END_MARKER}
 `;
 }
