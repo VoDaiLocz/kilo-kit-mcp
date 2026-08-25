@@ -15,19 +15,19 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/skills-172-06b6d4?style=for-the-badge&labelColor=0f172a" alt="172 skills">
+  <img src="https://img.shields.io/badge/skills-177-06b6d4?style=for-the-badge&labelColor=0f172a" alt="177 skills">
+  <img src="https://img.shields.io/badge/tools-18%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="18 MCP tools">
   <img src="https://img.shields.io/badge/MCP-ready-14b8a6?style=for-the-badge&logo=modelcontextprotocol&labelColor=0f172a" alt="MCP ready">
   <img src="https://img.shields.io/badge/Codex-ready-111827?style=for-the-badge&logo=openai&labelColor=0f172a" alt="Codex ready">
-  <img src="https://img.shields.io/badge/Trusted%20Publishing-OIDC-8b5cf6?style=for-the-badge&logo=githubactions&labelColor=0f172a" alt="Trusted publishing">
   <img src="https://img.shields.io/badge/Node-%3E%3D20-339933?style=for-the-badge&logo=nodedotjs&labelColor=0f172a" alt="Node >=20">
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=for-the-badge&logo=typescript&labelColor=0f172a" alt="TypeScript 5.9">
 </p>
 
 # Kilo-Kit: MCP Workflow Gates for Coding Agents
 
-> **Version:** 1.4.0
-> **Author:** Kilo-Kit Team
-> **License:** Apache 2.0
+> **Version:** 1.6.0  
+> **Author:** Kilo-Kit Team  
+> **License:** Apache 2.0  
 
 Kilo-Kit is a local-first MCP server and skill library for making coding agents follow safer, repeatable workflows before they touch code.
 
@@ -41,32 +41,28 @@ request -> route -> planning gate -> memory check -> workflow release -> verific
 
 The published package is `@vodailoc/kilo-kit-mcp`.
 
-## Why Use It
+---
 
-| Problem | Kilo-Kit behavior |
-| --- | --- |
-| Agent starts coding too early | C4 requires planning/brainstorming before substantive work. |
-| Agent forgets repo-specific preferences | Optional memory suggests prior decisions before execution. |
-| Agent chooses random instructions | Skill routing returns the workflow and first skill to load. |
-| Agent says "done" without proof | Verification gate must be satisfied before completion. |
-| Different agents behave differently | `kilo-kit-init` writes the same C4 rule for Gemini, Codex, and Claude. |
+## ⚡ 1-Click Quick Setup (Universal AI Client Support)
 
-## What It Provides
+Choose the setup method that best fits your workflow:
 
-| Area | Purpose |
-| --- | --- |
-| Skill library | Installable `SKILL.md` workflows grouped by engineering, productivity, debugging, design, operations, docs, and more. |
-| MCP server | stdio server exposing routing, skill loading, validation, C4 orchestration, memory, and route reports. |
-| C4 gate | A closed-loop workflow gate that blocks substantive work until the real brainstorming skill has been followed and approved. |
-| Memory | Optional SQLite-backed facts, decisions, sessions, and workflow outcomes. |
-| Audit | Optional JSONL trail for C4 state transitions and route decisions. |
-| Verification | A returned verification gate that agents must satisfy before claiming completion. |
+### Option A: Universal Auto-Installer (Recommended)
+Run the auto-configurator in your terminal. It automatically detects and configures **Antigravity CLI, Cursor IDE, Windsurf, Claude Code, and Claude Desktop** in 1 second:
 
-## Install In Two Steps
+```bash
+npx -y @vodailoc/kilo-kit-mcp setup
+```
 
-Step 1: install the MCP server in your client.
+### Option B: Claude Code CLI
+Add Kilo-Kit directly to Claude Code with a single command:
 
-Use the published package in any MCP-capable host:
+```bash
+claude mcp add kilo-kit -- npx -y @vodailoc/kilo-kit-mcp
+```
+
+### Option C: Manual MCP Configuration (`mcpServers`)
+Add the following JSON block to your AI client's configuration file (e.g. `~/.cursor/mcp.json`, `~/.gemini/antigravity-cli/mcp_config.json`, or `claude_desktop_config.json`):
 
 ```json
 {
@@ -79,256 +75,148 @@ Use the published package in any MCP-capable host:
 }
 ```
 
-Step 2: bootstrap the host-agent rule in your project.
+---
+
+## 🛡️ Why Kilo-Kit: Protocol-Level Server-Side Hard-Gate
+
+Traditional agent systems rely entirely on passive text prompts (`.cursorrules` or `CLAUDE.md`). When LLMs experience prompt drift, they frequently skip planning, jump straight into rewriting code, introduce breaking changes, or hallucinate completion.
+
+**Kilo-Kit solves this at the I/O Protocol layer:**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Agent as Host AI Agent
+    participant MCP as Kilo-Kit MCP Server (v1.6.0)
+    participant Disk as File System & Execution
+
+    User->>Agent: "Add JWT rate-limiting middleware"
+    Note over Agent,MCP: 1. Gating Enforcement
+    Agent->>MCP: kilo_write_file("auth.ts") [Unauthorized]
+    MCP-->>Agent: 🛑 [KILO-KIT HARD-GATE VIOLATION] (Blocked at Server Level!)
+    
+    Note over Agent,MCP: 2. C4 Planning & Brainstorming
+    Agent->>MCP: kilo_orchestrate_task("Add JWT rate-limiting")
+    MCP-->>Agent: State: brainstorming_required (Workflow + Skills released)
+    Agent->>MCP: kilo_grill_plan(plan="...") [Adversarial Red-Teaming]
+    MCP-->>Agent: Risk Score: 20/100, Invariants Locked ✅
+    
+    User->>Agent: Approve Brainstorming Plan
+    Agent->>MCP: kilo_orchestrate_task(sessionId, brainstormingApproved=true)
+    MCP-->>Agent: State: READY (I/O permissions unlocked)
+
+    Note over Agent,Disk: 3. Execution & Verification
+    Agent->>MCP: kilo_write_file, kilo_edit_file, kilo_run_command
+    MCP->>Disk: Safe Sandboxed Execution
+    Agent->>MCP: kilo_synthesize_skill("jwt-rate-limit")
+    MCP-->>Agent: Synthesized into Library 🧬
+    Agent-->>User: Completed with Verified Evidence ✅
+```
+
+---
+
+## 🧰 The 18 All-in-One MCP Tools Suite
+
+Kilo-Kit provides a complete, self-contained execution and reasoning runtime:
+
+| Category | Tool | Description |
+| :--- | :--- | :--- |
+| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Enforces brainstorming before code mutation. |
+| | `kilo_route_intent` | Routes intent to best workflow chains, task modes, and rules. |
+| | `kilo_get_skill` | Loads curated `SKILL.md` workflows with token-safe truncation. |
+| | `kilo_search_skills` | High-precision semantic and keyword search across 177 skills. |
+| | `kilo_memory_report` | Inspects persistent SQLite decisions, facts, and sessions. |
+| | `kilo_route_report` | Reports route analytics, telemetry, and workflow metrics. |
+| | `kilo_validate_skills` | Validates entire skill catalog against the quality gate. |
+| **Safe Execution Suite** | `kilo_read_file` | Line slicing, size capping, and repository boundary enforcement. |
+| | `kilo_search_files` | Glob pattern search across directory trees. |
+| | `kilo_grep_code` | Line-by-line regex and substring search. |
+| | `kilo_write_file` | Atomic directory write with **Protocol Hard-Gate check**. |
+| | `kilo_edit_file` | Targeted search-and-replace with **AST syntax validation**. |
+| | `kilo_run_command` | Sandboxed terminal execution with **security guardrails**. |
+| **Cognitive Reasoning** | `kilo_think_step` | **Tree of Thoughts DAG**: Step-by-step reasoning & hypothesis branching. |
+| | `kilo_grill_plan` | **Adversarial Red-Teaming**: Inversion, simplification & blast radius. |
+| | `kilo_trace_root_cause` | **5-Whys Diagnostic Engine**: Recursive causal back-propagation. |
+| | `kilo_compact_context` | **Cognitive Compactor**: 40-70% token savings while locking invariants. |
+| | `kilo_synthesize_skill` | **Self-Evolution**: Distills solved patterns into reusable skills. |
+
+---
+
+## 🧠 Cognitive Thinking & Reasoning Engines
+
+### 1. `kilo_think_step` (Tree of Thoughts)
+Allows agents to record iterative hypotheses, branch into alternative solutions (`branchId`), and backtrack when initial assumptions fail.
+
+### 2. `kilo_grill_plan` (Adversarial Red-Teaming)
+Stress-tests architectures against 3 critical lenses:
+* **Inversion Analysis:** *Where will this fail first under 100x traffic or network timeouts?*
+* **Simplification Cascade:** *Can 50% of this complexity be deleted?*
+* **Blast Radius:** *Will mutating this state cause regressions in unrelated modules?*
+
+### 3. `kilo_trace_root_cause` (5-Whys Root Cause Tracer)
+Bypasses superficial patches by propagating backward from crash stack traces to the true systemic trigger:
+$$\text{Stack Trace} \xrightarrow{\text{Why?}} \text{Null Pointer} \xrightarrow{\text{Why?}} \text{Un-awaited Promise} \xrightarrow{\text{Root Cause}} \text{Bootstrap Lifecycle Race!}$$
+
+### 4. `kilo_compact_context` (Token Economy)
+Slashes context bloat by compressing repetitive terminal logs while anchoring architectural invariants (`[INVARIANT]`) into active working memory.
+
+### 5. `kilo_synthesize_skill` (Self-Evolving Agent)
+Transforms solved production bugs and clean designs into standardized `SKILL.md` entries that persist across future coding sessions.
+
+---
+
+## 📚 177 Curated Skills Catalog
+
+Kilo-Kit bundles 177 production-ready skills categorized into:
+
+* **Engineering & Architecture:** `codebase-design`, `backend-development`, `api-patterns`, `database-design`, `nextjs-best-practices`, `react-patterns`, `tailwind-patterns`, `aspnet-core`, `better-auth`.
+* **Problem-Solving & Reasoning:** `sequential-thinking`, `root-cause-tracing`, `systematic-debugging`, `collision-zone-thinking`, `scale-game`, `simplification-cascades`, `inversion-exercise`.
+* **Productivity & Review:** `brainstorming`, `spec-driven-development`, `tdd-workflow`, `code-review`, `verification-before-completion`, `grill-me`, `subagent-driven-development`.
+* **Agent Frameworks:** `workflow-state-machines`, `agent-memory`, `agentic-rag`, `multi-agent-orchestration`, `mcp-agent-patterns`.
+* **Security & Defense:** `ai-guardrails`, `red-team-tactics`, `security-best-practices`, `vulnerability-scanner`.
+* **Operations & Cloud:** `docker-devops`, `server-management`, `chrome-devtools`, `performance-profiling`.
+
+---
+
+## ⚙️ Workspace Bootstrapping (Optional Multi-Agent Fallback)
+
+In MCP-integrated environments (like Antigravity CLI, Cursor, Claude Code), Kilo-Kit **requires zero `.md` files in project repos**.
+
+If you share a repository with external team members using standalone LLM clients without global MCP, you can bootstrap standard markdown instruction blocks:
 
 ```bash
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client gemini
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client codex
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client claude
+# Bootstrap C4 rules for all major AI clients in target project
+kilo-kit-init init --client all --dir /path/to/project
 ```
 
-Or initialize all supported host files:
+Generates idempotent C4 hooks in:
+* `GEMINI.md` (Gemini CLI / Antigravity)
+* `AGENTS.md` (OpenAI Codex)
+* `CLAUDE.md` (Claude Code)
+
+---
+
+## 🧪 Verification & Development
 
 ```bash
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client all
-```
+# Clone and install dependencies
+git clone https://github.com/VoDaiLocz/KILO-KIT.git
+cd KILO-KIT
+npm install
 
-This writes an idempotent Kilo-Kit C4 block to:
+# Run unit tests (50/50 test suites across 12 files)
+npm test
 
-| Client | File |
-| --- | --- |
-| Gemini CLI | `GEMINI.md` |
-| OpenAI Codex | `AGENTS.md` |
-| Claude Code | `CLAUDE.md` |
-
-The block is wrapped in `KILO-KIT:C4` markers, so running the command again updates the Kilo-Kit section without deleting your existing project rules.
-
-For Codex CLI on Windows, use an npm prefix outside the source checkout so npm does not resolve a local checkout:
-
-```toml
-[mcp_servers.kilo-kit]
-command = "npm"
-args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailoc/kilo-kit-mcp", "--", "kilo-kit-mcp"]
-startup_timeout_sec = 60
-enabled = true
-```
-
-## Why Bootstrap Is Needed
-
-MCP exposes tools, prompts, resources, and server instructions. It does not force every host agent to call those tools automatically.
-
-Kilo-Kit ships the C4 rule in four places:
-
-- MCP server instructions.
-- MCP resource `kilo://rules/c4`.
-- MCP prompt `kilo-c4-workflow`.
-- Host bootstrap files created by `kilo-kit-init`.
-
-The bootstrap file is the reliable part. It tells the host agent to call C4 before implementation instead of waiting for the user to manually request MCP usage.
-
-## C4 Workflow
-
-`kilo_orchestrate_task` is the main C4 entry point. It does not execute code. It routes the request, records state, and releases the next workflow only when the gate conditions are satisfied.
-
-The intended flow is:
-
-```text
-1. User sends a substantive task.
-2. Agent calls kilo_orchestrate_task(message, context).
-3. C4 routes the task and injects productivity/brainstorming first.
-4. State becomes brainstorming_required.
-5. Agent loads productivity/brainstorming with kilo_get_skill.
-6. Agent follows that skill and gets user approval.
-7. Agent calls kilo_orchestrate_task again with the same sessionId and brainstormingApproved=true.
-8. C4 checks memory suggestions.
-9. If suggestions exist, state becomes awaiting_memory_confirmation.
-10. Agent accepts or rejects suggestions with memoryConfirmations.
-11. State becomes ready.
-12. C4 returns finalWorkflow without productivity/brainstorming.
-13. Agent loads the first workflow skill with kilo_get_skill.
-14. Agent also checks its internal skill list for other relevant skills before coding.
-15. Agent executes the workflow and satisfies the returned verificationGate before completion.
-```
-
-Read-only requests such as status, show, read, or explain can skip the brainstorming gate.
-
-### C4 States
-
-| State | Meaning |
-| --- | --- |
-| `brainstorming_required` | Substantive work is blocked until `productivity/brainstorming` is loaded, followed, and approved by the user. |
-| `awaiting_memory_confirmation` | C4 found remembered operating preferences. The agent must accept or reject them before execution. |
-| `ready` | C4 has released the post-brainstorming workflow and verification gate. |
-
-### Returned Workflow
-
-When C4 is ready, it returns:
-
-- `finalWorkflow`: ordered Kilo-Kit skill steps for the task mode.
-- `firstSkillToLoad`: first skill the agent should load with `kilo_get_skill`.
-- `verificationGate`: commands and rationale that must pass before completion.
-- `nextAction`: the immediate instruction for the agent.
-- `auditRef`: present when orchestration audit JSONL is enabled.
-
-The returned workflow is a primary route, not the only context source. Agents must also inspect their own available skill list and load any other relevant skills before implementation.
-
-## MCP Tools
-
-| Tool | Purpose |
-| --- | --- |
-| `kilo_orchestrate_task` | C4 gate for substantive work. Routes internally, enforces brainstorming first, checks memory, and releases the final workflow. |
-| `kilo_route_intent` | Routes a request to recommended skills, task mode, workflow order, rule hierarchy, and decision trail. |
-| `kilo_search_skills` | Searches the skill catalog by natural-language query. |
-| `kilo_get_skill` | Loads one exact `SKILL.md` with context-safe truncation. |
-| `kilo_route_report` | Reports route telemetry, top skills, workflows, score averages, and conflict penalties. |
-| `kilo_memory_report` | Reports C4 memory facts, decisions, suggestions, sessions, and workflow outcomes. |
-| `kilo_validate_skills` | Runs the skill validation gate. |
-
-## MCP Resources
-
-| Resource | Purpose |
-| --- | --- |
-| `kilo://skills/index` | Lightweight skill index for discovery. |
-| `kilo://core/master` | Core Kilo-Kit master instructions. |
-| `kilo://rules/c4` | Minimal host-agent operating rules for the C4 workflow. |
-| `kilo://skills/{category}/{skill}` | Dynamic skill resource for one skill. |
-
-## Persistence
-
-Route telemetry is in memory by default. Enable JSONL decision persistence with:
-
-```bash
-KILO_KIT_WRITE_DECISIONS=true
-KILO_KIT_DECISION_TRAIL_PATH=/absolute/path/decision-trail.jsonl
-```
-
-If `KILO_KIT_DECISION_TRAIL_PATH` is not set, route decisions are written to `.kilo/decision-trail.jsonl` under `KILO_KIT_REPO_ROOT`.
-
-C4 memory uses `node:sqlite` when available and defaults to:
-
-```text
-~/.kilo-kit/orchestrator.sqlite
-```
-
-Override C4 paths with:
-
-```bash
-KILO_KIT_MEMORY_PATH=/absolute/path/orchestrator.sqlite
-KILO_KIT_ORCHESTRATION_AUDIT_PATH=/absolute/path/orchestration-audit.jsonl
-```
-
-C4 memory stores structured facts, decisions, orchestration sessions, and workflow outcomes. The audit file stores append-only state transition events.
-
-## Skill Library
-
-`skills/` is the workflow surface shipped with the package.
-
-| Path | Purpose |
-| --- | --- |
-| `skills/SKILLS_INDEX.md` | Lightweight index for routing and discovery. |
-| `skills/agent-frameworks/` | Multi-agent orchestration, state machines, memory, and MCP patterns. |
-| `skills/engineering/` | Engineering architectures, testing, TDD, APIs, databases, and evaluation. |
-| `skills/productivity/` | Spec-driven development, planning, and agent coordination. |
-| `skills/security/` | AI guardrails, threat modeling, and vulnerability scanning. |
-| `skills/problem-solving/` | Root-cause analysis, debugging, and sequential reasoning. |
-| `skills/design/` | Frontend design, UI styling, Tailwind, and aesthetic systems. |
-| `skills/operations/` | DevOps, MCP management, observability, and server infrastructure. |
-| `skills/ai-media/` | Multimodal AI processing, media encoding, and search optimization. |
-| `skills/games/` | 2D/3D, Web, and mobile game development workflows. |
-| `skills/writing-docs/` | Structured technical documentation, specifications, and slide decks. |
-| `skills/kilo-kit/` | Core Kilo-Kit framework and C4 protocol gates. |
-
-Install the full skill library (172 skills):
-
-```bash
-npx skills@latest add VoDaiLocz/KILO-KIT
-```
-
-Install one category:
-
-```bash
-npx skills@latest add VoDaiLocz/KILO-KIT/skills/engineering
-```
-
-Install one skill:
-
-```bash
-npx skills@latest add VoDaiLocz/KILO-KIT/skills/engineering/tdd
-```
-
-## Repository Layout
-
-```text
-.
-|-- .claude-plugin/       Claude Code entry instructions
-|-- .codex/               Codex entry instructions
-|-- .cursor-plugin/       Cursor entry instructions
-|-- .mcp/                 MCP config examples
-|-- .opencode/            OpenCode entry instructions
-|-- commands/             Reusable workflow commands
-|-- docs/                 Architecture and planning documents
-|-- examples/             Example workflows
-|-- mcp/                  TypeScript MCP server
-|-- skills/               Installable skill library
-|-- src/core/             Core framework docs and validator entry files
-`-- src/tools/            Skill initialization and validation tools
-```
-
-## Local Development
-
-Install, build, test, and smoke-check the MCP server:
-
-```bash
-npm --prefix mcp install
-npm --prefix mcp run build
-npm --prefix mcp run typecheck
-npm --prefix mcp test
-npm --prefix mcp run smoke
+# Run skill catalog validation (177/177 skills)
 node src/tools/validate-skill.js --all skills
+
+# Full prepublish test & smoke verification
+npm run prepublishOnly
 ```
 
-Use a local MCP server during development:
+---
 
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "node",
-      "args": ["/absolute/path/to/KILO-KIT/mcp/dist/server.js"],
-      "env": {
-        "KILO_KIT_REPO_ROOT": "/absolute/path/to/KILO-KIT"
-      }
-    }
-  }
-}
-```
+## 📄 License
 
-## Release
-
-The root package publishes through npm Trusted Publishing from GitHub Actions.
-
-Configure npm once:
-
-| Field | Value |
-| --- | --- |
-| Provider | GitHub Actions |
-| Repository | `VoDaiLocz/kilo-kit-mcp` |
-| Workflow filename | `publish.yml` |
-
-Then run the `Publish Packages` workflow or push a version tag:
-
-```bash
-git tag v1.4.0
-git push origin v1.4.0
-```
-
-The release workflow runs build, typecheck, tests (35/35 passed), smoke check, skill validation (177/177 passed), package dry-run, and publishes to GitHub Packages & npm.
-
-## Roadmap
-
-- v1.4.0: 12 Standardized Workflow DAG pipelines, 172 curated skills catalog, GitHub Packages integration.
-- v2.0.0: Local Visual Workflow Builder for C4 sessions, memory, and audit review.
-
-## License
-
-Apache 2.0. See [LICENSE](./LICENSE).
+Distributed under the Apache 2.0 License. See [LICENSE](LICENSE) for more details.

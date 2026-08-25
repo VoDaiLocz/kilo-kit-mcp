@@ -14,7 +14,8 @@
   },
   "bin": {
     "kilo-kit-mcp": "mcp/dist/server.js",
-    "kilo-kit-init": "mcp/dist/init.js"
+    "kilo-kit-init": "mcp/dist/init.js",
+    "kilo-kit-setup": "mcp/dist/init.js"
   },
   "files": [
     "LICENSE",

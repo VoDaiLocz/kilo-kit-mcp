@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, lstatSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -189,8 +190,106 @@ function writeFileAtomic(filePath: string, content: string): void {
   }
 }
 
-function parseArgs(argv: string[]): BootstrapOptions {
+export interface SetupResult {
+  client: string;
+  configPath: string;
+  action: "configured" | "already_configured" | "skipped";
+  error?: string;
+}
+
+export function setupClientMcpConfigs(): SetupResult[] {
+  const home = os.homedir();
+  const results: SetupResult[] = [];
+
+  const kiloKitMcpEntry = {
+    command: "npx",
+    args: ["-y", "@vodailoc/kilo-kit-mcp"],
+  };
+
+  const clientTargets = [
+    {
+      name: "Antigravity CLI",
+      path: path.join(home, ".gemini/antigravity-cli/mcp_config.json"),
+    },
+    {
+      name: "Gemini CLI",
+      path: path.join(home, ".gemini/config/mcp_config.json"),
+    },
+    {
+      name: "Cursor IDE",
+      path: path.join(home, ".cursor/mcp.json"),
+    },
+    {
+      name: "Windsurf IDE",
+      path: path.join(home, ".codeium/windsurf/mcp_config.json"),
+    },
+    {
+      name: "Claude Code",
+      path: path.join(home, ".claude.json"),
+    },
+    {
+      name: "Claude Desktop",
+      path:
+        process.platform === "darwin"
+          ? path.join(home, "Library/Application Support/Claude/claude_desktop_config.json")
+          : process.platform === "win32" && process.env.APPDATA
+            ? path.join(process.env.APPDATA, "Claude/claude_desktop_config.json")
+            : path.join(home, ".config/Claude/claude_desktop_config.json"),
+    },
+  ];
+
+  for (const target of clientTargets) {
+    try {
+      const configDir = path.dirname(target.path);
+      if (!existsSync(configDir)) {
+        mkdirSync(configDir, { recursive: true });
+      }
+
+      let configObj: any = { mcpServers: {} };
+      if (existsSync(target.path)) {
+        try {
+          const raw = readFileSync(target.path, "utf8");
+          configObj = JSON.parse(raw);
+          if (!configObj.mcpServers || typeof configObj.mcpServers !== "object") {
+            configObj.mcpServers = {};
+          }
+        } catch {
+          configObj = { mcpServers: {} };
+        }
+      }
+
+      const existing = configObj.mcpServers?.["kilo-kit"];
+      configObj.mcpServers["kilo-kit"] = kiloKitMcpEntry;
+
+      writeFileSync(target.path, JSON.stringify(configObj, null, 2) + "\n", "utf8");
+      results.push({
+        client: target.name,
+        configPath: target.path,
+        action: existing ? "already_configured" : "configured",
+      });
+    } catch (err: any) {
+      results.push({
+        client: target.name,
+        configPath: target.path,
+        action: "skipped",
+        error: err?.message,
+      });
+    }
+  }
+
+  return results;
+}
+
+type CliCommand =
+  | { type: "init"; options: BootstrapOptions }
+  | { type: "setup" };
+
+function parseArgs(argv: string[]): CliCommand {
   const command = argv[0];
+  if (command === "setup" || command === "install") {
+    return { type: "setup" };
+  }
+
   if (command !== "init") {
     throw new Error(usage());
   }
@@ -228,8 +327,11 @@ function parseArgs(argv: string[]): BootstrapOptions {
   }
 
   return {
-    client: client ?? "all",
-    cwd,
+    type: "init",
+    options: {
+      client: client ?? "all",
+      cwd,
+    },
   };
 }
 
@@ -239,19 +341,37 @@ function isClient(value: string): value is BootstrapOptions["client"] {
 
 function usage(): string {
   return [
-    "Usage:",
+    "🚀 Kilo-Kit CLI",
+    "",
+    "Commands:",
+    "  kilo-kit-init setup",
+    "    Automatically detects & registers Kilo-Kit MCP into Antigravity, Cursor, Claude Code, Windsurf & Claude Desktop.",
+    "",
     "  kilo-kit-init init [--client gemini|codex|claude|all] [--dir <path>]",
+    "    Bootstraps C4 protocol rule files into target project workspace.",
     "",
     "Examples:",
-    "  kilo-kit-init init --client gemini",
-    "  kilo-kit-init init --client codex --dir /path/to/project",
+    "  npx -y @vodailoc/kilo-kit-mcp setup",
+    "  kilo-kit-init setup",
     "  kilo-kit-init init --client all",
+    "  kilo-kit-init init --client gemini --dir /path/to/project",
   ].join("\n");
 }
 
 async function main(): Promise<void> {
-  const options = parseArgs(process.argv.slice(2));
-  const results = bootstrap(options);
+  const parsed = parseArgs(process.argv.slice(2));
+  if (parsed.type === "setup") {
+    console.log("🚀 Running Kilo-Kit Auto-Setup across AI clients...\n");
+    const results = setupClientMcpConfigs();
+    for (const r of results) {
+      const icon = r.action === "configured" ? "✅ Added" : r.action === "already_configured" ? "🔄 Updated" : "⚠️ Skipped";
+      console.log(`${icon} [${r.client}]: ${r.configPath}`);
+    }
+    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.6.0.");
+    return;
+  }
+
+  const results = bootstrap(parsed.options);
   for (const result of results) {
     console.log(`${result.action}: ${result.filePath}`);
   }

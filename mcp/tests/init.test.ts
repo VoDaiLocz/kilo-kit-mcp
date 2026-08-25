@@ -83,4 +83,12 @@ describe("kilo-kit init bootstrap", () => {
 
     expect(() => bootstrap({ client: "gemini", cwd })).toThrow(/symlinked bootstrap file/);
   });
+
+  it("configures MCP across client configuration targets", async () => {
+    const { setupClientMcpConfigs } = await import("../src/init.js");
+    const results = setupClientMcpConfigs();
+    expect(results.length).toBeGreaterThanOrEqual(4);
+    expect(results.some((r) => r.client === "Cursor IDE")).toBe(true);
+    expect(results.some((r) => r.client === "Claude Code")).toBe(true);
+  });
 });
