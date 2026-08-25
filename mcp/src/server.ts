@@ -9,13 +9,27 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 import {
+  executeEditFile,
+  executeGrepCode,
+  executeReadFile,
+  executeRunCommand,
+  executeSearchFiles,
+  executeWriteFile,
+} from "./execution-tools.js";
+import {
+  formatEditFile,
+  formatGrepCode,
   formatLoadedSkill,
   formatMemoryReport,
   formatOrchestration,
+  formatReadFile,
   formatRoute,
   formatRouteReport,
+  formatRunCommand,
+  formatSearchFiles,
   formatSkills,
   formatValidation,
+  formatWriteFile,
   textResponse,
 } from "./formatters.js";
 import { createJsonlOrchestrationAudit, createNoopOrchestrationAudit } from "./orchestration-audit.js";
@@ -28,7 +42,7 @@ import { routeIntent } from "./router.js";
 import { validateSkills } from "./validator.js";
 import type { ResponseFormat } from "./types.js";
 
-const SERVER_VERSION = "1.4.2";
+const SERVER_VERSION = "1.5.0";
 const DEFAULT_REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const formatSchema = z.enum(["markdown", "json"]).default("markdown");
@@ -272,6 +286,161 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     async ({ format }) => {
       const summary = await validateSkills({ repoRoot });
       return textResponse(formatValidation(summary, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_read_file",
+    {
+      title: "Read File (Kilo-Kit)",
+      description:
+        "Read file content safely within repository boundaries, supporting line ranges and output size capping.",
+      inputSchema: {
+        filePath: z.string().min(1).describe("Relative path to file in repo"),
+        startLine: z.number().int().min(1).optional().describe("Starting line number (1-indexed)"),
+        endLine: z.number().int().min(1).optional().describe("Ending line number (1-indexed)"),
+        maxBytes: z.number().int().min(100).max(1024 * 1024).optional().describe("Max bytes to return"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ filePath, startLine, endLine, maxBytes, format }) => {
+      const result = executeReadFile(repoRoot, { filePath, startLine, endLine, maxBytes });
+      return textResponse(formatReadFile(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_search_files",
+    {
+      title: "Search Files (Kilo-Kit)",
+      description: "Search for files matching a glob pattern across the repository.",
+      inputSchema: {
+        pattern: z.string().min(1).describe("Glob pattern (e.g. '*.ts', '**/*.json', 'src/**/*.tsx')"),
+        rootDir: z.string().optional().describe("Subdirectory to limit search"),
+        maxResults: z.number().int().min(1).max(200).optional().describe("Maximum file matches"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ pattern, rootDir, maxResults, format }) => {
+      const result = executeSearchFiles(repoRoot, { pattern, rootDir, maxResults });
+      return textResponse(formatSearchFiles(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_grep_code",
+    {
+      title: "Grep Code (Kilo-Kit)",
+      description: "Search code snippets and matching lines across repository files.",
+      inputSchema: {
+        query: z.string().min(1).describe("Search string or regex pattern"),
+        rootDir: z.string().optional().describe("Subdirectory to limit search"),
+        isRegex: z.boolean().optional().describe("Whether query is regex"),
+        caseSensitive: z.boolean().optional().describe("Case-sensitive match"),
+        maxResults: z.number().int().min(1).max(200).optional().describe("Max matches to return"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ query, rootDir, isRegex, caseSensitive, maxResults, format }) => {
+      const result = executeGrepCode(repoRoot, { query, rootDir, isRegex, caseSensitive, maxResults });
+      return textResponse(formatGrepCode(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_write_file",
+    {
+      title: "Write File (Kilo-Kit Hard-Gated)",
+      description:
+        "Create a new file or overwrite an existing file. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+      inputSchema: {
+        filePath: z.string().min(1).describe("Relative path to file"),
+        content: z.string().describe("Complete file content to write"),
+        overwrite: z.boolean().optional().describe("Allow overwriting existing files"),
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+    },
+    async ({ filePath, content, overwrite, sessionId, format }) => {
+      const result = executeWriteFile(repoRoot, orchestrator, { filePath, content, overwrite, sessionId });
+      return textResponse(formatWriteFile(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_edit_file",
+    {
+      title: "Edit File (Kilo-Kit Hard-Gated)",
+      description:
+        "Perform exact targeted search-and-replace edit on an existing file with AST check. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+      inputSchema: {
+        filePath: z.string().min(1).describe("Relative path to file"),
+        targetContent: z.string().min(1).describe("Exact content substring to replace"),
+        replacementContent: z.string().describe("Replacement content"),
+        allowMultiple: z.boolean().optional().describe("Allow multiple replacements"),
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+    },
+    async ({ filePath, targetContent, replacementContent, allowMultiple, sessionId, format }) => {
+      const result = executeEditFile(repoRoot, orchestrator, {
+        filePath,
+        targetContent,
+        replacementContent,
+        allowMultiple,
+        sessionId,
+      });
+      return textResponse(formatEditFile(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_run_command",
+    {
+      title: "Run Command (Kilo-Kit Hard-Gated)",
+      description:
+        "Execute a terminal command with security guardrails and timeout. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+      inputSchema: {
+        command: z.string().min(1).describe("Terminal command to run"),
+        cwd: z.string().optional().describe("Working directory relative to repoRoot"),
+        timeoutMs: z.number().int().min(1000).max(120000).optional().describe("Timeout in milliseconds"),
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+    },
+    async ({ command, cwd, timeoutMs, sessionId, format }) => {
+      const result = await executeRunCommand(repoRoot, orchestrator, { command, cwd, timeoutMs, sessionId });
+      return textResponse(formatRunCommand(result, normalizeFormat(format)));
     },
   );
 

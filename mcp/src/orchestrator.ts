@@ -22,9 +22,11 @@ export interface CreateOrchestratorOptions {
 
 export interface KiloOrchestrator {
   orchestrate(input: OrchestrationInput): OrchestrationResult;
+  getSession(sessionId: string): OrchestrationSession | undefined;
+  isSessionReady(sessionId?: string): { ready: boolean; state: OrchestrationState | "missing"; reason?: string };
 }
 
-interface OrchestrationSession {
+export interface OrchestrationSession {
   sessionId: string;
   message: string;
   createdAt: string;
@@ -42,6 +44,39 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
   const audit = options.audit ?? createNoopOrchestrationAudit();
 
   return {
+    getSession(sessionId: string) {
+      return sessions.get(sessionId);
+    },
+    isSessionReady(sessionId?: string) {
+      if (!sessionId) {
+        return {
+          ready: false,
+          state: "missing",
+          reason: "No sessionId provided. You must call kilo_orchestrate_task to obtain a valid sessionId before writing/editing files or executing commands.",
+        };
+      }
+      const session = sessions.get(sessionId);
+      if (!session) {
+        return {
+          ready: false,
+          state: "missing",
+          reason: `Session '${sessionId}' not found. You must initialize the task with kilo_orchestrate_task first.`,
+        };
+      }
+      const suggestions = ensureMemorySuggestions(options.memory, session);
+      const pendingSuggestions = suggestions.filter(
+        (suggestion) => session.memoryConfirmations[suggestion.key] === undefined,
+      );
+      const state = selectState(session, pendingSuggestions);
+      if (state !== "ready") {
+        return {
+          ready: false,
+          state,
+          reason: `Session '${sessionId}' is in state '${state}'. You must pass brainstorming approval (brainstormingApproved=true) via kilo_orchestrate_task before code modification or command execution.`,
+        };
+      }
+      return { ready: true, state: "ready" };
+    },
     orchestrate(input) {
       const session = getOrCreateSession(sessions, options.registry, input);
       mergeInput(session, input);

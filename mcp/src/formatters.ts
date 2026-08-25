@@ -272,3 +272,52 @@ export function formatMemoryReport(report: MemoryReport, format: "markdown" | "j
     outcomes,
   ].join("\n");
 }
+
+export function formatReadFile(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return [
+    `# File: \`${result.filePath}\` (Lines ${result.startLine}-${result.endLine} of ${result.totalLines})`,
+    result.truncated ? `> ⚠️ Output truncated at maxBytes threshold.` : "",
+    "```",
+    result.content,
+    "```",
+  ].filter(Boolean).join("\n");
+}
+
+export function formatWriteFile(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return `✅ Successfully ${result.action} file \`${result.filePath}\` (${result.bytesWritten} bytes written).`;
+}
+
+export function formatEditFile(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return `✅ ${result.message} (Status: ${result.syntaxStatus})`;
+}
+
+export function formatSearchFiles(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  if (result.totalMatches === 0) return `No files matched pattern \`${result.pattern}\`.`;
+  return [
+    `# File Search Results (\`${result.pattern}\` - ${result.totalMatches} matches):`,
+    ...result.files.map((file: string) => `- \`${file}\``),
+  ].join("\n");
+}
+
+export function formatGrepCode(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  if (result.totalMatches === 0) return `No code matches found for query \`${result.query}\`.`;
+  return [
+    `# Code Grep Results (\`${result.query}\` - ${result.totalMatches} matches):`,
+    ...result.matches.map((m: any) => `- \`${m.file}:${m.line}\`: ${m.content}`),
+  ].join("\n");
+}
+
+export function formatRunCommand(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  const statusEmoji = result.exitCode === 0 ? "✅" : "❌";
+  return [
+    `${statusEmoji} Command: \`${result.command}\` (Exit Code: ${result.exitCode}, Duration: ${result.durationMs}ms)`,
+    result.stdout ? `\n**Stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
+    result.stderr ? `\n**Stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
+  ].filter(Boolean).join("\n");
+}
