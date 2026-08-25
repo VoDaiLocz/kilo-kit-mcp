@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync, realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -634,7 +635,19 @@ async function main(): Promise<void> {
   await server.connect(transport);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+function isCurrentModuleMain(): boolean {
+  if (!process.argv[1]) return false;
+  const target = fileURLToPath(import.meta.url);
+  const directPath = path.resolve(process.argv[1]);
+  if (directPath === target) return true;
+  try {
+    return existsSync(process.argv[1]) && realpathSync(process.argv[1]) === target;
+  } catch {
+    return false;
+  }
+}
+
+if (isCurrentModuleMain()) {
   main().catch((error: unknown) => {
     console.error(error);
     process.exit(1);

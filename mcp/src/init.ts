@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { lstatSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -257,7 +257,19 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+function isCurrentModuleMain(): boolean {
+  if (!process.argv[1]) return false;
+  const target = fileURLToPath(import.meta.url);
+  const directPath = path.resolve(process.argv[1]);
+  if (directPath === target) return true;
+  try {
+    return realpathSync(process.argv[1]) === target;
+  } catch {
+    return false;
+  }
+}
+
+if (isCurrentModuleMain()) {
   main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
