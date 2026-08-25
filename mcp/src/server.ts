@@ -10,6 +10,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 import {
+  executeCompactContext,
+  executeGrillPlan,
+  executeSynthesizeSkill,
+  executeThinkStep,
+  executeTraceRootCause,
+} from "./cognitive-tools.js";
+import {
   executeEditFile,
   executeGrepCode,
   executeReadFile,
@@ -18,8 +25,10 @@ import {
   executeWriteFile,
 } from "./execution-tools.js";
 import {
+  formatCompactContext,
   formatEditFile,
   formatGrepCode,
+  formatGrillPlan,
   formatLoadedSkill,
   formatMemoryReport,
   formatOrchestration,
@@ -29,6 +38,9 @@ import {
   formatRunCommand,
   formatSearchFiles,
   formatSkills,
+  formatSynthesizeSkill,
+  formatThinkStep,
+  formatTraceRootCause,
   formatValidation,
   formatWriteFile,
   textResponse,
@@ -43,7 +55,7 @@ import { routeIntent } from "./router.js";
 import { validateSkills } from "./validator.js";
 import type { ResponseFormat } from "./types.js";
 
-const SERVER_VERSION = "1.5.0";
+const SERVER_VERSION = "1.6.0";
 const DEFAULT_REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const formatSchema = z.enum(["markdown", "json"]).default("markdown");
@@ -442,6 +454,167 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     async ({ command, cwd, timeoutMs, sessionId, format }) => {
       const result = await executeRunCommand(repoRoot, orchestrator, { command, cwd, timeoutMs, sessionId });
       return textResponse(formatRunCommand(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_think_step",
+    {
+      title: "Sequential Thinking & Branching",
+      description:
+        "Iterative step-by-step reasoning engine with hypothesis tracking, revision, and solution branching.",
+      inputSchema: {
+        thought: z.string().min(1).describe("Current reasoning thought"),
+        thoughtNumber: z.number().int().min(1).describe("Current thought step index"),
+        totalThoughts: z.number().int().min(1).describe("Estimated total thought steps"),
+        nextThoughtNeeded: z.boolean().describe("Whether more reasoning steps are needed"),
+        isRevision: z.boolean().optional().describe("Whether this thought revises an earlier thought"),
+        revisesThought: z.number().int().min(1).optional().describe("Which thought index is being revised"),
+        branchFromThought: z.number().int().min(1).optional().describe("Thought index to branch from"),
+        branchId: z.string().optional().describe("Identifier for this reasoning branch"),
+        hypothesis: z.string().optional().describe("Explicit hypothesis being tested"),
+        sessionId: z.string().optional().describe("Optional session ID"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+      },
+    },
+    async ({
+      thought,
+      thoughtNumber,
+      totalThoughts,
+      nextThoughtNeeded,
+      isRevision,
+      revisesThought,
+      branchFromThought,
+      branchId,
+      hypothesis,
+      sessionId,
+      format,
+    }) => {
+      const result = executeThinkStep({
+        thought,
+        thoughtNumber,
+        totalThoughts,
+        nextThoughtNeeded,
+        isRevision,
+        revisesThought,
+        branchFromThought,
+        branchId,
+        hypothesis,
+        sessionId,
+      });
+      return textResponse(formatThinkStep(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_grill_plan",
+    {
+      title: "Red-Team Plan Grilling",
+      description:
+        "Automated adversarial stress-testing against Inversion, Simplification Cascades, Blast Radius, and Edge-cases.",
+      inputSchema: {
+        plan: z.string().min(1).describe("The proposed architecture, implementation plan, or bugfix strategy"),
+        context: z.string().optional().describe("Relevant file paths, tech stack, or system constraints"),
+        depth: z.enum(["quick", "deep", "hardcore"]).optional().describe("Grilling depth"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ plan, context, depth, format }) => {
+      const result = executeGrillPlan({ plan, context, depth });
+      return textResponse(formatGrillPlan(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_trace_root_cause",
+    {
+      title: "5-Whys Root Cause Tracer",
+      description:
+        "Recursive causal backward-propagation analysis from crash log to the underlying systemic root cause.",
+      inputSchema: {
+        errorLog: z.string().min(1).describe("Raw error message, stack trace, or failing test output"),
+        failingFile: z.string().optional().describe("File where failure occurred"),
+        expectedBehavior: z.string().optional().describe("Expected behavior"),
+        actualBehavior: z.string().optional().describe("Actual behavior"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ errorLog, failingFile, expectedBehavior, actualBehavior, format }) => {
+      const result = executeTraceRootCause({ errorLog, failingFile, expectedBehavior, actualBehavior });
+      return textResponse(formatTraceRootCause(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_compact_context",
+    {
+      title: "Cognitive Context Compactor",
+      description:
+        "Compacts verbose logs, test dumps, and noisy output by 40-70% while preserving architectural invariants.",
+      inputSchema: {
+        content: z.string().min(1).describe("Verbose content to compact"),
+        preserveInvariants: z.array(z.string()).optional().describe("Key invariant rules or phrases to lock"),
+        targetReduction: z.enum(["moderate", "aggressive"]).optional().describe("Compaction aggressiveness"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ content, preserveInvariants, targetReduction, format }) => {
+      const result = executeCompactContext({ content, preserveInvariants, targetReduction });
+      return textResponse(formatCompactContext(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_synthesize_skill",
+    {
+      title: "Synthesize Self-Evolving Skill",
+      description:
+        "Distill a newly solved architectural pattern or bugfix methodology into a reusable, validated SKILL.md.",
+      inputSchema: {
+        skillName: z.string().min(1).describe("Name of the skill to synthesize"),
+        category: z.string().optional().describe("Target skill category (defaults to 'learned')"),
+        problemDescription: z.string().min(10).describe("Description of the problem solved"),
+        solutionPattern: z.string().min(10).describe("Proven solution pattern and code guidelines"),
+        verificationGuidance: z.string().min(10).describe("Verification and testing steps"),
+        keywords: z.array(z.string()).optional().describe("Keywords for discovery"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+    },
+    async ({ skillName, category, problemDescription, solutionPattern, verificationGuidance, keywords, format }) => {
+      const result = await executeSynthesizeSkill(repoRoot, registry, {
+        skillName,
+        category,
+        problemDescription,
+        solutionPattern,
+        verificationGuidance,
+        keywords,
+      });
+      return textResponse(formatSynthesizeSkill(result, normalizeFormat(format)));
     },
   );
 

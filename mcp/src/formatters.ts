@@ -321,3 +321,70 @@ export function formatRunCommand(result: any, format: "markdown" | "json"): stri
     result.stderr ? `\n**Stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
   ].filter(Boolean).join("\n");
 }
+
+export function formatThinkStep(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  const t = result.currentThought;
+  return [
+    `# 🧠 Sequential Thought #${t.thoughtNumber}/${t.totalThoughts}${t.branchId ? ` (Branch: \`${t.branchId}\`)` : ""}`,
+    t.isRevision ? `> 🔄 *Revision of thought #${t.revisesThought}*` : "",
+    t.hypothesis ? `> 💡 **Hypothesis:** ${t.hypothesis}` : "",
+    "",
+    t.thought,
+    "",
+    `*Status:* ${result.isComplete ? "✅ Reasoning Complete" : `⏳ Continuing (${result.totalRecordedThoughts} steps recorded)`}`,
+  ].filter(Boolean).join("\n");
+}
+
+export function formatGrillPlan(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  const verdictEmoji = result.readinessVerdict === "APPROVED" ? "✅" : result.readinessVerdict === "REQUIRES_HARDENING" ? "⚠️" : "🛑";
+  return [
+    `# 🥊 Kilo-Kit Red-Team Grill Report`,
+    `**Verdict:** ${verdictEmoji} **${result.readinessVerdict}** (Risk Score: ${result.riskScore}/100)`,
+    `*${result.summary}*`,
+    "",
+    "## 🔍 Critical Stress-Test Questions",
+    ...result.grillQuestions.map((q: any, i: number) => 
+      `### ${i + 1}. [${q.category.toUpperCase()}] ${q.title}\n- **Concern:** ${q.concern}\n- **Stress-Test:** *"${q.stressTestQuestion}"*\n- **Hardening:** ${q.recommendation}\n`
+    ),
+    "## 🛡️ Pre-Code Hardening Checklist",
+    ...result.hardeningChecklist.map((item: string) => `- [ ] ${item}`),
+  ].join("\n");
+}
+
+export function formatTraceRootCause(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return [
+    `# 🔍 5-Whys Root Cause Trace Analysis`,
+    `**Symptom:** \`${result.symptom}\``,
+    `**Root Cause:** **${result.rootCause}**`,
+    "",
+    "## 🌳 Causal Chain (Back-Propagation)",
+    ...result.causalChain.map((lvl: any) => `**Level ${lvl.level} (${lvl.name}):** ${lvl.finding}`),
+    "",
+    `## 🛠️ Minimal Surgical Fix`,
+    result.minimalFixRecommendation,
+    "",
+    `## 🧪 Regression Prevention Test`,
+    result.regressionPreventionTest,
+  ].join("\n");
+}
+
+export function formatCompactContext(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return [
+    `# 🗜️ Context Compacted (${result.reductionPercentage}% Token Reduction)`,
+    `*Original: ${result.originalBytes} bytes ➔ Compacted: ${result.compactedBytes} bytes*`,
+    result.lockedInvariants.length > 0 ? `**Locked Invariants:** ${result.lockedInvariants.join(", ")}` : "",
+    "```",
+    result.compactedContent,
+    "```",
+  ].filter(Boolean).join("\n");
+}
+
+export function formatSynthesizeSkill(result: any, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  return `✨ Successfully synthesized skill \`${result.skillId}\` at \`${result.skillPath}\`! (Quality Gate Passed: ${result.validationPassed ? "✅" : "❌"})`;
+}
+

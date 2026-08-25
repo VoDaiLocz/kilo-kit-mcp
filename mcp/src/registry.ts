@@ -21,6 +21,7 @@ export interface SkillRegistry {
   searchSkills(input: SearchSkillsInput): SkillRecord[];
   getSkill(category: string, skill: string): SkillRecord;
   loadSkill(input: LoadSkillInput): Promise<LoadedSkill>;
+  reload(): Promise<void>;
 }
 
 const DEFAULT_LIMIT = 10;
@@ -42,6 +43,15 @@ class FileSystemSkillRegistry implements SkillRegistry {
     records: SkillRecord[],
   ) {
     this.#recordsById = new Map(records.map((record) => [record.id, record]));
+  }
+
+  async reload(): Promise<void> {
+    const skillsRoot = resolveInsideRepo(this.repoRoot, "skills");
+    const records = await discoverSkills(this.repoRoot, skillsRoot);
+    this.#recordsById.clear();
+    for (const record of records) {
+      this.#recordsById.set(record.id, record);
+    }
   }
 
   listSkills(): SkillRecord[] {
@@ -101,11 +111,19 @@ async function discoverSkills(repoRoot: string, skillsRoot: string): Promise<Ski
   const skillFiles = await findSkillFiles(skillsRoot);
   const records = await Promise.all(skillFiles.map((skillFile) => readSkillRecord(repoRoot, skillFile)));
 
-  return records.sort((left, right) => left.id.localeCompare(right.id));
+  return (records.filter((r): r is SkillRecord => r !== undefined)).sort((left, right) => left.id.localeCompare(right.id));
 }
 
 async function findSkillFiles(directory: string): Promise<string[]> {
-  const entries = await fs.readdir(directory, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch (error: any) {
+    if (error?.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
   const skillFiles: string[] = [];
 
   for (const entry of entries) {
@@ -120,8 +138,17 @@ async function findSkillFiles(directory: string): Promise<string[]> {
   return skillFiles;
 }
 
-async function readSkillRecord(repoRoot: string, skillFile: string): Promise<SkillRecord> {
-  const content = await fs.readFile(skillFile, "utf8");
+async function readSkillRecord(repoRoot: string, skillFile: string): Promise<SkillRecord | undefined> {
+  let content: string;
+  try {
+    content = await fs.readFile(skillFile, "utf8");
+  } catch (error: any) {
+    if (error?.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+
   const frontmatter = parseSkillFrontmatter(content);
   const directory = path.dirname(skillFile);
   const relativeDirectory = toPosixPath(repoRoot, directory);
