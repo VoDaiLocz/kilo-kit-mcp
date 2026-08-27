@@ -77,6 +77,7 @@ describe("orchestration memory", () => {
       createdAt: "2026-05-30T00:01:00.000Z",
     });
 
+    const report = memory.report();
     expect(report.sessions).toContainEqual(expect.objectContaining({ id: "session-1", state: "brainstorming_required" }));
     expect(report.outcomes).toContainEqual(expect.objectContaining({ id: "outcome-1", outcome: "workflow-released" }));
   });
