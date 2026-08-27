@@ -73,16 +73,16 @@ export interface MemoryDecision {
 export interface SkillScoreInput {
   skillId: string;
   score: number;
-  feedback?: string;
+  feedback?: string | undefined;
 }
 
 export interface LearningReflectionInput {
-  sessionId?: string;
+  sessionId?: string | undefined;
   taskMode: string;
   taskSummary: string;
   correctApproach: string;
   wrongPathsEncountered: string[];
-  skillsEvaluated?: SkillScoreInput[];
+  skillsEvaluated?: SkillScoreInput[] | undefined;
   lessonsLearned: string;
 }
 
