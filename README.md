@@ -5,13 +5,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/VoDaiLocz/KILO-KIT/stargazers"><img src="https://img.shields.io/github/stars/VoDaiLocz/KILO-KIT?style=for-the-badge&logo=github&label=Stars&color=18181b&labelColor=0f172a" alt="GitHub stars"></a>
-  <a href="https://github.com/VoDaiLocz/KILO-KIT/commits/main"><img src="https://img.shields.io/github/last-commit/VoDaiLocz/KILO-KIT?style=for-the-badge&logo=git&label=Last%20commit&color=22c55e&labelColor=0f172a" alt="Last commit"></a>
-  <a href="https://github.com/VoDaiLocz/KILO-KIT/graphs/contributors"><img src="https://img.shields.io/github/contributors/VoDaiLocz/KILO-KIT?style=for-the-badge&logo=github&label=Contributors&color=f97316&labelColor=0f172a" alt="Contributors"></a>
-  <a href="https://github.com/VoDaiLocz/KILO-KIT/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/VoDaiLocz/KILO-KIT/publish.yml?style=for-the-badge&logo=githubactions&label=Publish&color=22c55e&labelColor=0f172a" alt="Publish workflow"></a>
+  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/stargazers"><img src="https://img.shields.io/github/stars/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=github&label=Stars&color=18181b&labelColor=0f172a" alt="GitHub stars"></a>
+  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=git&label=Last%20commit&color=22c55e&labelColor=0f172a" alt="Last commit"></a>
+  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=github&label=Contributors&color=f97316&labelColor=0f172a" alt="Contributors"></a>
+  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/VoDaiLocz/kilo-kit-mcp/publish.yml?style=for-the-badge&logo=githubactions&label=Publish&color=22c55e&labelColor=0f172a" alt="Publish workflow"></a>
   <a href="https://www.npmjs.com/package/@vodailoc/kilo-kit-mcp"><img src="https://img.shields.io/npm/v/@vodailoc/kilo-kit-mcp?style=for-the-badge&logo=npm&label=npm&color=ef4444&labelColor=0f172a" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@vodailoc/kilo-kit-mcp"><img src="https://img.shields.io/npm/dm/@vodailoc/kilo-kit-mcp?style=for-the-badge&logo=npm&label=downloads&color=0284c7&labelColor=0f172a" alt="npm downloads"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/VoDaiLocz/KILO-KIT?style=for-the-badge&label=License&color=64748b&labelColor=0f172a" alt="License"></a>
+  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&label=License&color=64748b&labelColor=0f172a" alt="License"></a>
 </p>
 
 <p align="center">
@@ -154,7 +154,9 @@ Stress-tests architectures against 3 critical lenses:
 
 ### 3. `kilo_trace_root_cause` (5-Whys Root Cause Tracer)
 Bypasses superficial patches by propagating backward from crash stack traces to the true systemic trigger:
-$$\text{Stack Trace} \xrightarrow{\text{Why?}} \text{Null Pointer} \xrightarrow{\text{Why?}} \text{Un-awaited Promise} \xrightarrow{\text{Root Cause}} \text{Bootstrap Lifecycle Race!}$$
+```text
+Stack Trace ──[Why?]──> Null Pointer ──[Why?]──> Un-awaited Promise ──[Root Cause]──> Bootstrap Lifecycle Race!
+```
 
 ### 4. `kilo_compact_context` (Token Economy)
 Slashes context bloat by compressing repetitive terminal logs while anchoring architectural invariants (`[INVARIANT]`) into active working memory.
