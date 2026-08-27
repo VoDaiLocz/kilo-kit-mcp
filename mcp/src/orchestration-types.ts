@@ -64,10 +64,25 @@ export interface MemorySuggestionInput {
   projectFingerprint?: string;
 }
 
-export interface MemoryDecision {
-  suggestionKey: string;
-  decision: "accepted" | "rejected";
-  reason?: string;
+export interface SkillScoreInput {
+  skillId: string;
+  score: number;
+  feedback?: string;
+}
+
+export interface LearningReflectionInput {
+  sessionId?: string;
+  taskMode: string;
+  taskSummary: string;
+  correctApproach: string;
+  wrongPathsEncountered: string[];
+  skillsEvaluated?: SkillScoreInput[];
+  lessonsLearned: string;
+}
+
+export interface LearningReflectionRecord extends LearningReflectionInput {
+  id: string;
+  createdAt: string;
 }
 
 export interface MemoryReport {
@@ -76,6 +91,7 @@ export interface MemoryReport {
   suggestions: MemorySuggestion[];
   sessions: OrchestrationSessionRecord[];
   outcomes: WorkflowOutcomeRecord[];
+  reflections: LearningReflectionRecord[];
 }
 
 export interface OrchestrationSessionRecord {

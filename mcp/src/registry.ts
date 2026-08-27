@@ -10,7 +10,7 @@ export interface SkillRegistryOptions {
 }
 
 export interface LoadSkillInput {
-  category: string;
+  category?: string;
   skill: string;
   maxChars?: number;
 }
@@ -19,7 +19,7 @@ export interface SkillRegistry {
   readonly repoRoot: string;
   listSkills(): SkillRecord[];
   searchSkills(input: SearchSkillsInput): SkillRecord[];
-  getSkill(category: string, skill: string): SkillRecord;
+  getSkill(category?: string, skill?: string): SkillRecord;
   loadSkill(input: LoadSkillInput): Promise<LoadedSkill>;
   reload(): Promise<void>;
 }
@@ -76,16 +76,75 @@ class FileSystemSkillRegistry implements SkillRegistry {
     return scored.slice(0, limit).map((entry) => entry.skill);
   }
 
-  getSkill(category: string, skill: string): SkillRecord {
-    assertSafeSegment(category, "category");
-    assertSafeSegment(skill, "skill");
+  getSkill(category?: string, skill?: string): SkillRecord {
+    const rawCategory = category?.trim() ?? "";
+    const rawSkill = skill?.trim() ?? "";
 
-    const record = this.#recordsById.get(`${category}/${skill}`);
-    if (!record) {
-      throw new Error(`Skill '${category}/${skill}' was not found. Search skills first, then load one exact result.`);
+    if (rawCategory) {
+      for (const segment of rawCategory.split("/")) {
+        assertSafeSegment(segment, "category");
+      }
+    }
+    if (rawSkill) {
+      for (const segment of rawSkill.split("/")) {
+        assertSafeSegment(segment, "skill");
+      }
     }
 
-    return record;
+    // 1. If skill has slash (e.g. "productivity/brainstorming"), parse it directly
+    if (rawSkill.includes("/")) {
+      const direct = this.#recordsById.get(rawSkill);
+      if (direct) return direct;
+      const [c, s] = rawSkill.split("/", 2);
+      const subDirect = this.#recordsById.get(`${c}/${s}`);
+      if (subDirect) return subDirect;
+    }
+
+    // 2. If category has slash (e.g. "productivity/brainstorming")
+    if (rawCategory.includes("/")) {
+      const direct = this.#recordsById.get(rawCategory);
+      if (direct) return direct;
+      const [c, s] = rawCategory.split("/", 2);
+      const subDirect = this.#recordsById.get(`${c}/${s}`);
+      if (subDirect) return subDirect;
+    }
+
+    // 3. Direct match with both category and skill
+    if (rawCategory && rawSkill) {
+      const direct = this.#recordsById.get(`${rawCategory}/${rawSkill}`);
+      if (direct) return direct;
+    }
+
+    // 4. Target name search (supports short names like 'brainstorming', 'diagnose', 'playwright', 'tdd')
+    const target = (rawSkill || rawCategory).toLowerCase();
+    if (!target) {
+      throw new Error("No skill name or identifier provided. Specify a skill name to load.");
+    }
+
+    // Exact match on skill folder name or record name
+    for (const record of this.#recordsById.values()) {
+      if (record.name.toLowerCase() === target || record.id.toLowerCase() === target || record.title.toLowerCase() === target) {
+        return record;
+      }
+    }
+
+    // Endswith match (e.g. 'brainstorming' matches 'productivity/brainstorming')
+    for (const record of this.#recordsById.values()) {
+      if (record.id.toLowerCase().endsWith(`/${target}`) || record.skillPath.toLowerCase().includes(`/${target}/`)) {
+        return record;
+      }
+    }
+
+    // Substring / fuzzy match fallback
+    const candidates = [...this.#recordsById.values()].filter(
+      (r) => r.id.toLowerCase().includes(target) || r.name.toLowerCase().includes(target)
+    );
+    const candidate = candidates[0];
+    if (candidate) {
+      return candidate;
+    }
+
+    throw new Error(`Skill '${rawCategory ? `${rawCategory}/` : ""}${rawSkill}' was not found in Kilo-Kit library. Search available skills with kilo_search_skills.`);
   }
 
   async loadSkill(input: LoadSkillInput): Promise<LoadedSkill> {

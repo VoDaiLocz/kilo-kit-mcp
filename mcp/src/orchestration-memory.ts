@@ -19,6 +19,8 @@ export interface OrchestrationMemoryStore {
   recordDecision(decision: MemoryDecision): void;
   recordSession(session: OrchestrationSessionRecord): void;
   recordOutcome(outcome: WorkflowOutcomeRecord): void;
+  recordReflection(reflection: LearningReflectionInput): LearningReflectionRecord;
+  getReflections(filter?: { taskMode?: string; limit?: number }): LearningReflectionRecord[];
   report(): MemoryReport;
 }
 
@@ -32,6 +34,7 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
   const suggestions: MemorySuggestion[] = [];
   const sessions = new Map<string, OrchestrationSessionRecord>();
   const outcomes: WorkflowOutcomeRecord[] = [];
+  const reflections: LearningReflectionRecord[] = [];
 
   return {
     rememberFact(fact) {
@@ -51,6 +54,28 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
     recordOutcome(outcome) {
       outcomes.push(clone(outcome));
     },
+    recordReflection(reflection) {
+      const record: LearningReflectionRecord = {
+        id: randomUUID(),
+        sessionId: reflection.sessionId,
+        taskMode: reflection.taskMode,
+        taskSummary: reflection.taskSummary,
+        correctApproach: reflection.correctApproach,
+        wrongPathsEncountered: [...reflection.wrongPathsEncountered],
+        skillsEvaluated: reflection.skillsEvaluated ? clone(reflection.skillsEvaluated) : [],
+        lessonsLearned: reflection.lessonsLearned,
+        createdAt: new Date().toISOString(),
+      };
+      reflections.push(record);
+      return clone(record);
+    },
+    getReflections(filter) {
+      let filtered = [...reflections];
+      if (filter?.taskMode) {
+        filtered = filtered.filter((r) => r.taskMode === filter.taskMode);
+      }
+      return filtered.slice(0, filter?.limit ?? 50).map(clone);
+    },
     report() {
       return {
         facts: [...facts.values()].map(clone),
@@ -58,6 +83,7 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
         suggestions: suggestions.map(clone),
         sessions: [...sessions.values()].map(clone),
         outcomes: outcomes.map(clone),
+        reflections: reflections.map(clone),
       };
     },
   };
@@ -113,6 +139,17 @@ export async function createSqliteOrchestrationMemory(
       workflow_json TEXT NOT NULL,
       verification_json TEXT NOT NULL,
       outcome TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS learning_reflections (
+      id TEXT PRIMARY KEY,
+      session_id TEXT,
+      task_mode TEXT NOT NULL,
+      task_summary TEXT NOT NULL,
+      correct_approach TEXT NOT NULL,
+      wrong_paths_json TEXT NOT NULL,
+      skills_evaluated_json TEXT NOT NULL,
+      lessons_learned TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
   `);
@@ -202,6 +239,61 @@ export async function createSqliteOrchestrationMemory(
           outcome.createdAt,
         );
     },
+    recordReflection(reflection) {
+      const id = randomUUID();
+      const createdAt = new Date().toISOString();
+      database
+        .prepare(
+          `INSERT INTO learning_reflections
+             (id, session_id, task_mode, task_summary, correct_approach, wrong_paths_json, skills_evaluated_json, lessons_learned, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          reflection.sessionId ?? null,
+          reflection.taskMode,
+          reflection.taskSummary,
+          reflection.correctApproach,
+          JSON.stringify(reflection.wrongPathsEncountered),
+          JSON.stringify(reflection.skillsEvaluated ?? []),
+          reflection.lessonsLearned,
+          createdAt,
+        );
+      return {
+        id,
+        sessionId: reflection.sessionId,
+        taskMode: reflection.taskMode,
+        taskSummary: reflection.taskSummary,
+        correctApproach: reflection.correctApproach,
+        wrongPathsEncountered: [...reflection.wrongPathsEncountered],
+        skillsEvaluated: reflection.skillsEvaluated ? clone(reflection.skillsEvaluated) : [],
+        lessonsLearned: reflection.lessonsLearned,
+        createdAt,
+      };
+    },
+    getReflections(filter) {
+      let query = "SELECT * FROM learning_reflections";
+      const params: unknown[] = [];
+      if (filter?.taskMode) {
+        query += " WHERE task_mode = ?";
+        params.push(filter.taskMode);
+      }
+      query += " ORDER BY created_at DESC LIMIT ?";
+      params.push(filter?.limit ?? 50);
+
+      const rows = database.prepare(query).all(...params) as unknown as SqliteReflectionRow[];
+      return rows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id ?? undefined,
+        taskMode: row.task_mode,
+        taskSummary: row.task_summary,
+        correctApproach: row.correct_approach,
+        wrongPathsEncountered: JSON.parse(row.wrong_paths_json || "[]") as string[],
+        skillsEvaluated: JSON.parse(row.skills_evaluated_json || "[]") as LearningReflectionRecord["skillsEvaluated"],
+        lessonsLearned: row.lessons_learned,
+        createdAt: row.created_at,
+      }));
+    },
     report() {
       return {
         facts: allFacts(database),
@@ -209,6 +301,7 @@ export async function createSqliteOrchestrationMemory(
         suggestions: [],
         sessions: allSessions(database),
         outcomes: allOutcomes(database),
+        reflections: allReflections(database),
       };
     },
   };
@@ -369,6 +462,34 @@ interface SqliteOutcomeRow {
   verification_json: string;
   outcome: string;
   created_at: string;
+}
+
+interface SqliteReflectionRow {
+  id: string;
+  session_id: string | null;
+  task_mode: string;
+  task_summary: string;
+  correct_approach: string;
+  wrong_paths_json: string;
+  skills_evaluated_json: string;
+  lessons_learned: string;
+  created_at: string;
+}
+
+function allReflections(database: import("node:sqlite").DatabaseSync): LearningReflectionRecord[] {
+  return (
+    database.prepare("SELECT * FROM learning_reflections ORDER BY created_at DESC").all() as unknown as SqliteReflectionRow[]
+  ).map((row) => ({
+    id: row.id,
+    sessionId: row.session_id ?? undefined,
+    taskMode: row.task_mode,
+    taskSummary: row.task_summary,
+    correctApproach: row.correct_approach,
+    wrongPathsEncountered: JSON.parse(row.wrong_paths_json || "[]") as string[],
+    skillsEvaluated: JSON.parse(row.skills_evaluated_json || "[]") as LearningReflectionRecord["skillsEvaluated"],
+    lessonsLearned: row.lessons_learned,
+    createdAt: row.created_at,
+  }));
 }
 
 function rowToFact(row: SqliteFactRow): MemoryFact {

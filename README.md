@@ -16,30 +16,27 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/skills-177-06b6d4?style=for-the-badge&labelColor=0f172a" alt="177 skills">
-  <img src="https://img.shields.io/badge/tools-18%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="18 MCP tools">
+  <img src="https://img.shields.io/badge/tools-19%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="19 MCP tools">
   <img src="https://img.shields.io/badge/MCP-ready-14b8a6?style=for-the-badge&logo=modelcontextprotocol&labelColor=0f172a" alt="MCP ready">
   <img src="https://img.shields.io/badge/Codex-ready-111827?style=for-the-badge&logo=openai&labelColor=0f172a" alt="Codex ready">
   <img src="https://img.shields.io/badge/Node-%3E%3D20-339933?style=for-the-badge&logo=nodedotjs&labelColor=0f172a" alt="Node >=20">
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=for-the-badge&logo=typescript&labelColor=0f172a" alt="TypeScript 5.9">
 </p>
 
-# Kilo-Kit: MCP Workflow Gates for Coding Agents
+# Kilo-Kit: Autonomous Cognitive Flow & Quality Engine for AI Coding Agents
 
-> **Version:** 1.6.0  
+> **Version:** 1.7.0  
 > **Author:** Kilo-Kit Team  
 > **License:** Apache 2.0  
 
-Kilo-Kit is a local-first MCP server and skill library for making coding agents follow safer, repeatable workflows before they touch code.
+Kilo-Kit is an agentic MCP runtime and curated 177-skill catalog designed to enforce grounded diagnosis, Tree-of-Thoughts architectural planning, adversarial red-teaming, 4D quality verification, and continuous SQLite self-improvement for AI coding assistants.
 
-Use it when your agent skips planning, ignores project workflow rules, forgets useful context, or claims work is done before verification.
-
-It packages a curated `skills/` library, an MCP server, and a C4 workflow gate that turns a user request into an auditable loop:
-
-```text
-request -> route -> planning gate -> memory check -> workflow release -> verification gate
-```
-
-The published package is `@vodailoc/kilo-kit-mcp`.
+### 🧠 Core Architectural Pillars:
+1. **Division of Labor (Cortex vs Limbs):** Kilo-Kit acts as the high-level cognitive brain (Tree of Thoughts, 5-Whys root cause analysis, adversarial stress-testing, context compaction) while host clients handle surgical I/O.
+2. **Two-Stage Cognitive Architecture:** Moves past brittle prompt regex matching. Performs read-only grounded exploration first, then dynamically dispatches tailored cognitive tools and skills.
+3. **Fuzzy Skill & Alias Resolver:** Instant, resilient skill loading with support for aliases (`brainstorming`, `diagnose`, `playwright`, `clean-code`, `tdd`).
+4. **4D Quality Assurance & Playwright E2E Gate:** Validates Given-When-Then acceptance criteria, clean code interfaces, UI/UX aesthetics, and automated Playwright browser/DOM verification before work is marked complete.
+5. **Continuous SQLite Self-Improvement:** Automatically captures correct approaches, wrong paths avoided, and lessons learned into SQLite to improve autonomous agent performance across sessions.
 
 ---
 
@@ -127,6 +124,7 @@ Kilo-Kit provides a complete, self-contained execution and reasoning runtime:
 | | `kilo_get_skill` | Loads curated `SKILL.md` workflows with token-safe truncation. |
 | | `kilo_search_skills` | High-precision semantic and keyword search across 177 skills. |
 | | `kilo_memory_report` | Inspects persistent SQLite decisions, facts, and sessions. |
+| | `kilo_record_reflection` | **Self-Improvement**: Persists reflections, correct/wrong paths, and skill ratings to SQLite. |
 | | `kilo_route_report` | Reports route analytics, telemetry, and workflow metrics. |
 | | `kilo_validate_skills` | Validates entire skill catalog against the quality gate. |
 | **Safe Execution Suite** | `kilo_read_file` | Line slicing, size capping, and repository boundary enforcement. |

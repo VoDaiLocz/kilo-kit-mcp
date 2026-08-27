@@ -1,16 +1,34 @@
 <!-- KILO-KIT:C4:START -->
-## Kilo-Kit C4 Workflow Protocol
+## Kilo-Kit C4 v3.0 Cognitive Protocol
 
-Applies to: OpenAI Codex, Antigravity, Gemini CLI, Claude Code, OpenAI Codex
+Applies to: Antigravity, Gemini CLI, Claude Code, OpenAI Codex
 
-### CRITICAL HARD-GATE:
-BEFORE reading, diagnosing, or editing any file with native tools (Read/Edit/Bash), you MUST call MCP tool `kilo_orchestrate_task` (via `call_mcp_tool`) with the user's request.
+### 🧠 DIVISION OF LABOR (VỎ NÃO & CHÂN TAY):
+- **Kilo-Kit MCP (Cortex):** High-level cognitive reasoning, 5-Whys root cause tracing, Tree-of-Thoughts DAG planning, adversarial red-teaming, context compaction, and skill delivery.
+- **Native Tools (Limbs):** Code editing, file viewing, terminal executions.
 
-1. **Gate 1 (Hard-Gate):** Call `kilo_orchestrate_task` first on every non-trivial task.
-2. **Gate 2 (Brainstorming):** If state is `brainstorming_required`, load `productivity/brainstorming` with `kilo_get_skill`, present diagnosis/plan, and get approval.
-3. **Gate 3 (Approval):** Call `kilo_orchestrate_task` again with the same `sessionId` and `brainstormingApproved=true`.
-4. **Gate 4 (Execution):** When state is `ready`, load workflow skills with `kilo_get_skill` in order.
-5. **Gate 5 (Verification):** Run `verificationGate` commands before claiming completion.
+### 🏛️ MANDATORY 2-STAGE COGNITIVE FLOW:
 
-Do NOT bypass KILO-KIT orchestration to jump directly into editing code or modifying CSS/JS files.
+1. **Gate 1 (Hard-Gate & Grounded Probe):** 
+   - Call MCP tool `kilo_orchestrate_task` (via `call_mcp_tool`) with the user's request.
+   - Perform read-only exploratory probing (`view_file`, `grep_search`) using `engineering/diagnose` to build a Grounded Diagnostic Model. Do NOT edit code before diagnosing.
+
+2. **Gate 2 (Cognitive Reasoning Dispatch):**
+   - **For Bugs / Errors:** MUST call `kilo_trace_root_cause` with `{ errorLog, failingFile }` to extract the 5-Whys causal chain before writing any fix.
+   - **For Features / Architecture:** MUST call `kilo_think_step` (DAG with 3 trade-off options) and `kilo_grill_plan` (Adversarial Red-Team stress test) before modification.
+   - **For Context Overload (>5 files read):** Call `kilo_compact_context` to lock invariants and prevent attention degradation.
+
+3. **Gate 3 (Approval & Skill Delivery):** 
+   - Call `kilo_orchestrate_task` with `brainstormingApproved=true`.
+   - Load required skills using `kilo_get_skill` (supports aliases like `brainstorming`, `diagnose`, `playwright`, `tdd`).
+
+4. **Gate 4 (Surgical Implementation & Defense-in-Depth):** 
+   - Apply `problem-solving/defense-in-depth` (validation at input, logic, and persistence layers).
+   - Maintain `engineering/clean-code` standards with zero bloat.
+
+5. **Gate 5 (4D Quality Assurance & Playwright E2E Verification):**
+   - **Dimension 1 (Spec Fidelity):** Verify against user requirements using Given-When-Then acceptance criteria (`productivity/spec-driven-development`).
+   - **Dimension 2 (Clean Code):** Verify deep module interfaces and zero dead code (`engineering/clean-code`).
+   - **Dimension 3 (UX & Aesthetics):** Verify responsive layout and mobile touch safety (`design/aesthetic`, `design/mobile-design`).
+   - **Dimension 4 (Empirical & Playwright):** Run compile/build commands AND execute Playwright E2E tests (`engineering/playwright`) with real browser/DOM verification before claiming completion.
 <!-- KILO-KIT:C4:END -->

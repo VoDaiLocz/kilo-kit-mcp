@@ -35,4 +35,24 @@ describe("skill registry", () => {
     expect(loaded.truncated).toBe(true);
     expect(loaded.skill.id).toBe("engineering/tdd");
   });
+
+  it("resolves fuzzy aliases and short skill names correctly", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+
+    // Short name without category
+    const brainstorm = registry.getSkill("brainstorming");
+    expect(brainstorm.id).toBe("productivity/brainstorming");
+
+    // Slash format passed as first arg
+    const diagnose = registry.getSkill("engineering/diagnose");
+    expect(diagnose.id).toBe("engineering/diagnose");
+
+    // Short name for playwright
+    const playwright = registry.getSkill("playwright");
+    expect(playwright.id).toBe("engineering/playwright");
+
+    // Clean code short name
+    const cleanCode = registry.getSkill("clean-code");
+    expect(cleanCode.id).toBe("engineering/clean-code");
+  });
 });

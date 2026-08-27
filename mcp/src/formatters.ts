@@ -182,7 +182,7 @@ export function formatOrchestration(result: OrchestrationResult, format: "markdo
 
   const brainstormingGate =
     result.state === "brainstorming_required"
-      ? "Load `productivity/brainstorming` and follow the real skill hard-gate. C4 questions are not used as a separate questionnaire."
+      ? "Load `productivity/brainstorming` (via `kilo_get_skill({ skill: 'brainstorming' })`) and follow the grounded probe hard-gate."
       : "Brainstorming approval has been recorded or this is a read-only route.";
   const workflow =
     result.workflow.length > 0
@@ -200,7 +200,27 @@ export function formatOrchestration(result: OrchestrationResult, format: "markdo
   const verification =
     result.verificationGate.commands.length > 0
       ? result.verificationGate.commands.map((command) => `- \`${command}\``).join("\n")
-      : "- No commands selected.";
+      : "- Run typecheck/build and Playwright E2E verification.";
+
+  const cognitiveDirectives: string[] = [];
+  if (result.taskMode === "bug" || result.taskMode === "bug-test-first") {
+    cognitiveDirectives.push("- **Root Cause Tracing**: Call `kilo_trace_root_cause` with `{ errorLog, failingFile }` to extract the 5-Whys causal chain before modifying code.");
+    cognitiveDirectives.push("- **Diagnostic Protocol**: Follow `engineering/diagnose` (Reproduce -> Minimize -> Hypothesize -> Instrument -> Fix).");
+  } else if (result.taskMode === "ui") {
+    cognitiveDirectives.push("- **Playwright E2E**: Generate and execute Playwright browser/UI tests to verify real DOM interaction and speech/visual flow.");
+    cognitiveDirectives.push("- **Aesthetic Standard**: Apply `design/aesthetic` (Beautiful, Right, Satisfying micro-interactions, Peak).");
+    cognitiveDirectives.push("- **Mobile Resilience**: Apply `design/mobile-design` for touch-targets, lifecycle handling, and Android/Webview resilience.");
+  } else {
+    cognitiveDirectives.push("- **Tree-of-Thoughts DAG**: Call `kilo_think_step` with `{ thought, thoughtNumber: 1, totalThoughts: 3 }` to compare 3 distinct architectural paths.");
+    cognitiveDirectives.push("- **Adversarial Red-Team**: Call `kilo_grill_plan` with `{ plan, depth: 'deep' }` to stress-test blast radius and edge cases.");
+  }
+
+  const qualityGate = [
+    "1. Intent & Spec Fidelity: Check all user requirements against Given-When-Then criteria.",
+    "2. Clean Code & Zero Bloat: Deep module interfaces, no console.logs, concise diffs.",
+    "3. UX & Platform Fidelity: Visual feedback, responsive layout, touch safety.",
+    "4. Empirical & Playwright E2E: Run real typecheck/build and Playwright automated tests.",
+  ].map((line) => `- ${line}`).join("\n");
 
   return [
     "# Kilo-Kit C4 Orchestration",
@@ -214,6 +234,12 @@ export function formatOrchestration(result: OrchestrationResult, format: "markdo
     "",
     "## Workflow",
     workflow,
+    "",
+    "## Cognitive Reasoning Blueprint",
+    cognitiveDirectives.join("\n"),
+    "",
+    "## 4D Quality Assurance & Playwright Gate",
+    qualityGate,
     "",
     "## Memory Suggestions",
     memorySuggestions,

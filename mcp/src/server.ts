@@ -55,7 +55,7 @@ import { routeIntent } from "./router.js";
 import { validateSkills } from "./validator.js";
 import type { ResponseFormat } from "./types.js";
 
-const SERVER_VERSION = "1.6.0";
+const SERVER_VERSION = "1.7.0";
 const DEFAULT_REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const formatSchema = z.enum(["markdown", "json"]).default("markdown");
@@ -166,6 +166,82 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
   );
 
   server.registerTool(
+    "kilo_record_reflection",
+    {
+      title: "Record Learning Reflection & Self-Improvement",
+      description:
+        "Record correct approaches, wrong paths/pitfalls encountered, skill ratings, and lessons learned into SQLite to drive Kilo-Kit's continuous self-improvement across sessions.",
+      inputSchema: {
+        taskMode: z.string().min(1).max(80).describe("Task mode (e.g. 'bug', 'architecture', 'ui', 'feature-build')."),
+        taskSummary: z.string().min(1).max(1000).describe("Summary of the problem solved."),
+        correctApproach: z.string().min(1).max(2000).describe("The successful strategy, fix, or architectural pattern used."),
+        wrongPathsEncountered: z.array(z.string().max(1000)).describe("Mistakes, wrong assumptions, or pitfalls encountered."),
+        skillsEvaluated: z
+          .array(
+            z.object({
+              skillId: z.string().max(120),
+              score: z.number().min(1).max(100),
+              feedback: z.string().max(500).optional(),
+            }),
+          )
+          .optional()
+          .describe("Ratings and feedback for specific skills used."),
+        lessonsLearned: z.string().min(1).max(2000).describe("Key invariant or takeaway for future tasks."),
+        sessionId: z.string().max(120).optional().describe("Optional session ID."),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+      },
+    },
+    async ({
+      taskMode,
+      taskSummary,
+      correctApproach,
+      wrongPathsEncountered,
+      skillsEvaluated,
+      lessonsLearned,
+      sessionId,
+      format,
+    }) => {
+      const record = orchestrationMemory.recordReflection({
+        taskMode,
+        taskSummary,
+        correctApproach,
+        wrongPathsEncountered,
+        ...(skillsEvaluated ? { skillsEvaluated } : {}),
+        lessonsLearned,
+        ...(sessionId ? { sessionId } : {}),
+      });
+      if (format === "json") {
+        return textResponse(JSON.stringify(record, null, 2));
+      }
+      return textResponse(
+        [
+          "# Kilo-Kit Self-Improvement Reflection Recorded",
+          "",
+          `ID: \`${record.id}\``,
+          `Task Mode: \`${record.taskMode}\``,
+          `Task Summary: ${record.taskSummary}`,
+          "",
+          "## Correct Approach",
+          record.correctApproach,
+          "",
+          "## Wrong Paths Avoided",
+          record.wrongPathsEncountered.map((p) => `- ❌ ${p}`).join("\n") || "- None",
+          "",
+          "## Lessons Learned",
+          record.lessonsLearned,
+          "",
+          "Saved to SQLite memory for future autonomous retrieval.",
+        ].join("\n"),
+      );
+    },
+  );
+
+  server.registerTool(
     "kilo_search_skills",
     {
       title: "Search Kilo-Kit Skills",
@@ -199,10 +275,10 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Load Kilo-Kit Skill",
       description:
-        "Load one exact Kilo-Kit skill by category and skill name. Use after kilo_route_intent or kilo_search_skills.",
+        "Load a Kilo-Kit skill by name or category/skill. Supports fuzzy aliases (e.g. 'brainstorming', 'diagnose', 'playwright', 'tdd', 'productivity/brainstorming').",
       inputSchema: {
-        category: z.string().min(1).max(80).describe("Skill category, for example engineering."),
-        skill: z.string().min(1).max(120).describe("Skill folder name, for example tdd."),
+        category: z.string().max(80).optional().describe("Optional skill category, for example engineering or productivity."),
+        skill: z.string().min(1).max(120).describe("Skill name or identifier (e.g. 'brainstorming', 'diagnose', 'playwright', 'productivity/brainstorming')."),
         maxChars: z.number().int().min(100).max(50000).optional().describe("Maximum SKILL.md characters to return."),
         format: formatSchema.optional(),
       },
@@ -214,7 +290,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     async ({ category, skill, maxChars, format }) => {
       const loaded = await registry.loadSkill({
-        category,
+        ...(category ? { category } : {}),
         skill,
         ...(maxChars ? { maxChars } : {}),
       });

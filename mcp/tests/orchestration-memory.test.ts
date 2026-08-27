@@ -77,9 +77,41 @@ describe("orchestration memory", () => {
       createdAt: "2026-05-30T00:01:00.000Z",
     });
 
-    const report = memory.report();
-
     expect(report.sessions).toContainEqual(expect.objectContaining({ id: "session-1", state: "brainstorming_required" }));
     expect(report.outcomes).toContainEqual(expect.objectContaining({ id: "outcome-1", outcome: "workflow-released" }));
+  });
+
+  it("records learning reflections with correct and wrong paths in sqlite", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "kilo-c4-reflections-"));
+    const filePath = path.join(dir, "orchestrator.sqlite");
+    const memory = await createSqliteOrchestrationMemory({ filePath });
+
+    const reflection = memory.recordReflection({
+      sessionId: "session-android-tts",
+      taskMode: "bug",
+      taskSummary: "Android audio playback stops on full sentence",
+      correctApproach: "Fallback to Capacitor TextToSpeech plugin when window.speechSynthesis drops stream on Android",
+      wrongPathsEncountered: [
+        "Calling window.speechSynthesis without platform check",
+        "Assuming WebView audio session stays alive in background",
+      ],
+      skillsEvaluated: [
+        { skillId: "engineering/diagnose", score: 95, feedback: "Isolated audio stream dropout quickly" },
+        { skillId: "design/mobile-design", score: 90, feedback: "Provided mobile audio lifecycle guidelines" },
+      ],
+      lessonsLearned: "Always verify Capacitor mobile audio bridge before invoking browser speech synthesis APIs.",
+    });
+
+    expect(reflection.id).toBeDefined();
+    expect(reflection.correctApproach).toContain("Fallback to Capacitor");
+
+    const reflections = memory.getReflections({ taskMode: "bug" });
+    expect(reflections).toHaveLength(1);
+    expect(reflections[0]?.wrongPathsEncountered).toHaveLength(2);
+    expect(reflections[0]?.skillsEvaluated?.[0]?.score).toBe(95);
+
+    const report = memory.report();
+    expect(report.reflections).toHaveLength(1);
+    expect(report.reflections[0]?.lessonsLearned).toContain("Capacitor mobile audio bridge");
   });
 });
