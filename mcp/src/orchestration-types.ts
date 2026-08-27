@@ -64,6 +64,12 @@ export interface MemorySuggestionInput {
   projectFingerprint?: string;
 }
 
+export interface MemoryDecision {
+  suggestionKey: string;
+  decision: "accepted" | "rejected";
+  reason?: string;
+}
+
 export interface SkillScoreInput {
   skillId: string;
   score: number;

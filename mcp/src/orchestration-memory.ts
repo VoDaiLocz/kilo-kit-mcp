@@ -3,6 +3,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type {
+  LearningReflectionInput,
+  LearningReflectionRecord,
   MemoryDecision,
   MemoryFact,
   MemoryFactInput,
@@ -273,7 +275,7 @@ export async function createSqliteOrchestrationMemory(
     },
     getReflections(filter) {
       let query = "SELECT * FROM learning_reflections";
-      const params: unknown[] = [];
+      const params: (string | number)[] = [];
       if (filter?.taskMode) {
         query += " WHERE task_mode = ?";
         params.push(filter.taskMode);
@@ -281,7 +283,8 @@ export async function createSqliteOrchestrationMemory(
       query += " ORDER BY created_at DESC LIMIT ?";
       params.push(filter?.limit ?? 50);
 
-      const rows = database.prepare(query).all(...params) as unknown as SqliteReflectionRow[];
+      const statement = database.prepare(query);
+      const rows = (statement.all as (...args: unknown[]) => unknown[])(...params) as unknown as SqliteReflectionRow[];
       return rows.map((row) => ({
         id: row.id,
         sessionId: row.session_id ?? undefined,

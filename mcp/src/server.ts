@@ -230,7 +230,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           record.correctApproach,
           "",
           "## Wrong Paths Avoided",
-          record.wrongPathsEncountered.map((p) => `- ❌ ${p}`).join("\n") || "- None",
+          record.wrongPathsEncountered.map((p: string) => `- ❌ ${p}`).join("\n") || "- None",
           "",
           "## Lessons Learned",
           record.lessonsLearned,
