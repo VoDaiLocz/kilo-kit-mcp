@@ -15,9 +15,9 @@ describe("kilo-kit init bootstrap", () => {
     const content = readFileSync(filePath, "utf8");
 
     expect(result).toMatchObject({ action: "created", client: "gemini", filePath });
-    expect(content).toContain("Kilo-Kit C4 Workflow");
+    expect(content).toContain("Kilo-Kit C4 v3.0 Cognitive Protocol");
     expect(content).toContain("kilo_orchestrate_task");
-    expect(content).toContain("verificationGate");
+    expect(content).toContain("Playwright");
   });
 
   it("appends the bootstrap block without removing existing content", () => {
