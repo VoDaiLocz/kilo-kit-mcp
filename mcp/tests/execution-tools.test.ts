@@ -153,6 +153,14 @@ describe("100% MCP Execution Tools Suite", () => {
       });
       expect(res2.state).toBe("ready");
 
+      orchestrator.recordCognitiveTool(sessionId, "kilo_think_step", {
+        thoughtLength: 100,
+        isSuperficial: false,
+      });
+      orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
+        planLength: 100,
+      });
+
       // 3. kilo_write_file succeeds
       const writeRes = executeWriteFile(repoRoot, orchestrator, {
         filePath: "mcp/tests/.sandbox/calculator.ts",
@@ -194,6 +202,14 @@ describe("100% MCP Execution Tools Suite", () => {
         brainstormingApproved: true,
       });
       expect(res.state).toBe("ready");
+
+      orchestrator.recordCognitiveTool(res.sessionId, "kilo_think_step", {
+        thoughtLength: 100,
+        isSuperficial: false,
+      });
+      orchestrator.recordCognitiveTool(res.sessionId, "kilo_grill_plan", {
+        planLength: 100,
+      });
 
       await expect(
         executeRunCommand(repoRoot, orchestrator, {

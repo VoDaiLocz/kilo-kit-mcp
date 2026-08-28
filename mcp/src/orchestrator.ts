@@ -421,23 +421,25 @@ function toJsonArray(value: unknown): unknown[] {
 // ---------------------------------------------------------------------------
 
 const COGNITIVE_REQUIREMENTS: Record<string, { required: string[]; label: string }> = {
-  "bug":              { required: ["kilo_trace_root_cause"],              label: "bug fix" },
-  "bug-test-first":   { required: ["kilo_trace_root_cause"],              label: "bug fix with TDD" },
-  "feature-build":    { required: ["kilo_think_step", "kilo_grill_plan"], label: "feature build" },
-  "workflow-optimization": { required: ["kilo_think_step", "kilo_grill_plan"], label: "workflow optimization" },
-  "architecture":     { required: ["kilo_think_step", "kilo_grill_plan"], label: "architecture" },
-  "ui":               { required: ["kilo_think_step"],                    label: "UI work" },
-  "mcp":              { required: ["kilo_think_step", "kilo_grill_plan"], label: "MCP development" },
-  "spec":             { required: ["kilo_think_step"],                    label: "spec planning" },
-  "security":         { required: ["kilo_trace_root_cause", "kilo_grill_plan"], label: "security" },
-  "backend-api":      { required: ["kilo_think_step"],                    label: "backend API" },
+  "bug":                   { required: ["kilo_trace_root_cause"],                           label: "bug fix" },
+  "bug-test-first":        { required: ["kilo_trace_root_cause"],                           label: "bug fix with TDD" },
+  "feature-build":         { required: ["kilo_think_step", "kilo_grill_plan"],              label: "feature build" },
+  "workflow-optimization": { required: ["kilo_think_step", "kilo_grill_plan"],              label: "workflow optimization" },
+  "architecture":          { required: ["kilo_think_step", "kilo_grill_plan"],              label: "architecture" },
+  "ui":                    { required: ["kilo_think_step", "kilo_grill_plan"],              label: "UI & frontend design" },
+  "mcp":                   { required: ["kilo_think_step", "kilo_grill_plan"],              label: "MCP development" },
+  "spec":                  { required: ["kilo_think_step", "kilo_grill_plan"],              label: "spec planning" },
+  "security":              { required: ["kilo_trace_root_cause", "kilo_grill_plan"],        label: "security hardening" },
+  "backend-api":           { required: ["kilo_think_step", "kilo_grill_plan"],              label: "backend API development" },
+  "research":              { required: ["kilo_think_step", "kilo_grill_plan"],              label: "deep research & data synthesis" },
+  "general":               { required: ["kilo_think_step", "kilo_grill_plan"],              label: "general development" },
 };
 
 function checkCognitiveGate(session: OrchestrationSession): { passed: boolean; reason: string } {
-  const req = COGNITIVE_REQUIREMENTS[session.route.taskMode];
-  if (!req) {
-    return { passed: true, reason: "" };
-  }
+  const req = COGNITIVE_REQUIREMENTS[session.route.taskMode] ?? {
+    required: ["kilo_think_step", "kilo_grill_plan"],
+    label: session.route.taskMode || "development",
+  };
 
   // 1. Substance validation: verify that think_step (if called) was not just a placeholder
   const thinkMeta = session.cognitiveMeta.get("kilo_think_step");
