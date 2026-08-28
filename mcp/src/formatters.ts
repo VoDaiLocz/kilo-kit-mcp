@@ -203,16 +203,19 @@ export function formatOrchestration(result: OrchestrationResult, format: "markdo
       : "- Run typecheck/build and Playwright E2E verification.";
 
   const cognitiveDirectives: string[] = [];
+  const sid = result.sessionId;
   if (result.taskMode === "bug" || result.taskMode === "bug-test-first") {
-    cognitiveDirectives.push("- **Root Cause Tracing**: Call `kilo_trace_root_cause` with `{ errorLog, failingFile }` to extract the 5-Whys causal chain before modifying code.");
-    cognitiveDirectives.push("- **Diagnostic Protocol**: Follow `engineering/diagnose` (Reproduce -> Minimize -> Hypothesize -> Instrument -> Fix).");
+    cognitiveDirectives.push(`- **[MANDATORY GATE]** Call \`kilo_trace_root_cause\` with \`{ errorLog, failingFile, sessionId: "${sid}" }\` BEFORE any code edit. kilo_write_file/kilo_edit_file will be BLOCKED until this is called.`);
+    cognitiveDirectives.push("- **Diagnostic Protocol**: Follow `engineering/diagnose` (Reproduce → Minimize → Hypothesize → Instrument → Fix).");
   } else if (result.taskMode === "ui") {
-    cognitiveDirectives.push("- **Playwright E2E**: Generate and execute Playwright browser/UI tests to verify real DOM interaction and speech/visual flow.");
-    cognitiveDirectives.push("- **Aesthetic Standard**: Apply `design/aesthetic` (Beautiful, Right, Satisfying micro-interactions, Peak).");
-    cognitiveDirectives.push("- **Mobile Resilience**: Apply `design/mobile-design` for touch-targets, lifecycle handling, and Android/Webview resilience.");
+    cognitiveDirectives.push(`- **[MANDATORY GATE]** Call \`kilo_think_step\` with \`{ thought, thoughtNumber: 1, totalThoughts: 3, sessionId: "${sid}" }\` BEFORE any code edit. kilo_write_file/kilo_edit_file will be BLOCKED until this is called.`);
+    cognitiveDirectives.push("- **Playwright E2E**: Generate and execute Playwright browser/UI tests to verify real DOM interaction.");
+    cognitiveDirectives.push("- **Aesthetic Standard**: Apply `design/aesthetic` (Beautiful, Right, Satisfying, Peak).");
+  } else if (result.taskMode === "security") {
+    cognitiveDirectives.push(`- **[MANDATORY GATE]** Call \`kilo_trace_root_cause\` with \`{ errorLog, sessionId: "${sid}" }\` AND \`kilo_grill_plan\` with \`{ plan, sessionId: "${sid}" }\` BEFORE any code edit. Both are REQUIRED.`);
   } else {
-    cognitiveDirectives.push("- **Tree-of-Thoughts DAG**: Call `kilo_think_step` with `{ thought, thoughtNumber: 1, totalThoughts: 3 }` to compare 3 distinct architectural paths.");
-    cognitiveDirectives.push("- **Adversarial Red-Team**: Call `kilo_grill_plan` with `{ plan, depth: 'deep' }` to stress-test blast radius and edge cases.");
+    cognitiveDirectives.push(`- **[MANDATORY GATE]** Call \`kilo_think_step\` with \`{ thought, thoughtNumber: 1, totalThoughts: 3, sessionId: "${sid}" }\` to compare 3 architectural paths. REQUIRED before kilo_write_file/kilo_edit_file/kilo_run_command.`);
+    cognitiveDirectives.push(`- **[MANDATORY GATE]** Call \`kilo_grill_plan\` with \`{ plan, depth: "deep", sessionId: "${sid}" }\` to adversarially stress-test the plan. REQUIRED before kilo_write_file/kilo_edit_file/kilo_run_command.`);
   }
 
   const qualityGate = [

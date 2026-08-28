@@ -24,6 +24,7 @@ export interface KiloOrchestrator {
   orchestrate(input: OrchestrationInput): OrchestrationResult;
   getSession(sessionId: string): OrchestrationSession | undefined;
   isSessionReady(sessionId?: string): { ready: boolean; state: OrchestrationState | "missing"; reason?: string };
+  recordCognitiveTool(sessionId: string, toolName: string): void;
 }
 
 export interface OrchestrationSession {
@@ -37,6 +38,7 @@ export interface OrchestrationSession {
   memorySuggestions: MemorySuggestion[];
   memoryConfirmations: Record<string, "accepted" | "rejected">;
   context?: OrchestrationInput["context"];
+  cognitiveToolsUsed: Set<string>;
 }
 
 export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrchestrator {
@@ -46,6 +48,12 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
   return {
     getSession(sessionId: string) {
       return sessions.get(sessionId);
+    },
+    recordCognitiveTool(sessionId: string, toolName: string) {
+      const session = sessions.get(sessionId);
+      if (session) {
+        session.cognitiveToolsUsed.add(toolName);
+      }
     },
     isSessionReady(sessionId?: string) {
       if (!sessionId) {
@@ -73,6 +81,14 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
           ready: false,
           state,
           reason: `Session '${sessionId}' is in state '${state}'. You must pass brainstorming approval (brainstormingApproved=true) via kilo_orchestrate_task before code modification or command execution.`,
+        };
+      }
+      const cognitiveGate = checkCognitiveGate(session);
+      if (!cognitiveGate.passed) {
+        return {
+          ready: false,
+          state: "ready",
+          reason: cognitiveGate.reason,
         };
       }
       return { ready: true, state: "ready" };
@@ -162,6 +178,7 @@ function getOrCreateSession(
     answers: {},
     memorySuggestions: [],
     memoryConfirmations: {},
+    cognitiveToolsUsed: new Set<string>(),
     ...(input.context ? { context: input.context } : {}),
   };
 
@@ -384,4 +401,39 @@ function toJsonObject(value: unknown): Record<string, unknown> {
 
 function toJsonArray(value: unknown): unknown[] {
   return JSON.parse(JSON.stringify(value)) as unknown[];
+}
+
+// ---------------------------------------------------------------------------
+// Cognitive Gate — enforced at MCP protocol level (not markdown hints)
+// ---------------------------------------------------------------------------
+
+const COGNITIVE_REQUIREMENTS: Record<string, { required: string[]; label: string }> = {
+  "bug":              { required: ["kilo_trace_root_cause"],              label: "bug fix" },
+  "bug-test-first":   { required: ["kilo_trace_root_cause"],              label: "bug fix with TDD" },
+  "feature-build":    { required: ["kilo_think_step", "kilo_grill_plan"], label: "feature build" },
+  "workflow-optimization": { required: ["kilo_think_step", "kilo_grill_plan"], label: "workflow optimization" },
+  "architecture":     { required: ["kilo_think_step", "kilo_grill_plan"], label: "architecture" },
+  "ui":               { required: ["kilo_think_step"],                    label: "UI work" },
+  "mcp":              { required: ["kilo_think_step", "kilo_grill_plan"], label: "MCP development" },
+  "spec":             { required: ["kilo_think_step"],                    label: "spec planning" },
+  "security":         { required: ["kilo_trace_root_cause", "kilo_grill_plan"], label: "security" },
+  "backend-api":      { required: ["kilo_think_step"],                    label: "backend API" },
+};
+
+function checkCognitiveGate(session: OrchestrationSession): { passed: boolean; reason: string } {
+  const req = COGNITIVE_REQUIREMENTS[session.route.taskMode];
+  if (!req) {
+    return { passed: true, reason: "" };
+  }
+
+  const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
+  if (missing.length === 0) {
+    return { passed: true, reason: "" };
+  }
+
+  const toolList = missing.map((t) => `\`${t}\``).join(" and ");
+  return {
+    passed: false,
+    reason: `[KILO-KIT COGNITIVE GATE] Task mode '${session.route.taskMode}' (${req.label}) requires ${toolList} before writing or executing code. Call ${toolList} with the current plan/error, then retry.`,
+  };
 }

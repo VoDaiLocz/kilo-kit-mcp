@@ -583,6 +583,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         hypothesis,
         sessionId,
       });
+      if (sessionId) {
+        orchestrator.recordCognitiveTool(sessionId, "kilo_think_step");
+      }
       return textResponse(formatThinkStep(result, normalizeFormat(format)));
     },
   );
@@ -597,6 +600,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         plan: z.string().min(1).describe("The proposed architecture, implementation plan, or bugfix strategy"),
         context: z.string().optional().describe("Relevant file paths, tech stack, or system constraints"),
         depth: z.enum(["quick", "deep", "hardcore"]).optional().describe("Grilling depth"),
+        sessionId: z.string().optional().describe("Active session ID to register cognitive gate satisfaction"),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -605,8 +609,11 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ plan, context, depth, format }) => {
+    async ({ plan, context, depth, sessionId, format }) => {
       const result = executeGrillPlan({ plan, context, depth });
+      if (sessionId) {
+        orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan");
+      }
       return textResponse(formatGrillPlan(result, normalizeFormat(format)));
     },
   );
@@ -622,6 +629,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         failingFile: z.string().optional().describe("File where failure occurred"),
         expectedBehavior: z.string().optional().describe("Expected behavior"),
         actualBehavior: z.string().optional().describe("Actual behavior"),
+        sessionId: z.string().optional().describe("Active session ID to register cognitive gate satisfaction"),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -630,8 +638,11 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ errorLog, failingFile, expectedBehavior, actualBehavior, format }) => {
+    async ({ errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, format }) => {
       const result = executeTraceRootCause({ errorLog, failingFile, expectedBehavior, actualBehavior });
+      if (sessionId) {
+        orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause");
+      }
       return textResponse(formatTraceRootCause(result, normalizeFormat(format)));
     },
   );
