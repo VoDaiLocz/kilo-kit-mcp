@@ -584,7 +584,10 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         sessionId,
       });
       if (sessionId) {
-        orchestrator.recordCognitiveTool(sessionId, "kilo_think_step");
+        orchestrator.recordCognitiveTool(sessionId, "kilo_think_step", {
+          thoughtLength: thought.trim().length,
+          isSuperficial: thought.trim().length < 30 || /^(prepare|ready|next step|file creation|start coding)$/i.test(thought.trim()),
+        });
       }
       return textResponse(formatThinkStep(result, normalizeFormat(format)));
     },
@@ -612,7 +615,10 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     async ({ plan, context, depth, sessionId, format }) => {
       const result = executeGrillPlan({ plan, context, depth });
       if (sessionId) {
-        orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan");
+        orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
+          planLength: plan.trim().length,
+          riskScore: result.riskScore,
+        });
       }
       return textResponse(formatGrillPlan(result, normalizeFormat(format)));
     },
@@ -641,7 +647,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     async ({ errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, format }) => {
       const result = executeTraceRootCause({ errorLog, failingFile, expectedBehavior, actualBehavior });
       if (sessionId) {
-        orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause");
+        orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause", {
+          errorLogLength: errorLog.trim().length,
+        });
       }
       return textResponse(formatTraceRootCause(result, normalizeFormat(format)));
     },

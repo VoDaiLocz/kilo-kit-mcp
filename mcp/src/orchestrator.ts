@@ -20,11 +20,19 @@ export interface CreateOrchestratorOptions {
   audit?: OrchestrationAuditWriter;
 }
 
+export interface CognitiveToolMetadata {
+  thoughtLength?: number;
+  isSuperficial?: boolean;
+  riskScore?: number;
+  planLength?: number;
+  errorLogLength?: number;
+}
+
 export interface KiloOrchestrator {
   orchestrate(input: OrchestrationInput): OrchestrationResult;
   getSession(sessionId: string): OrchestrationSession | undefined;
   isSessionReady(sessionId?: string): { ready: boolean; state: OrchestrationState | "missing"; reason?: string };
-  recordCognitiveTool(sessionId: string, toolName: string): void;
+  recordCognitiveTool(sessionId: string, toolName: string, meta?: CognitiveToolMetadata): void;
 }
 
 export interface OrchestrationSession {
@@ -39,6 +47,7 @@ export interface OrchestrationSession {
   memoryConfirmations: Record<string, "accepted" | "rejected">;
   context?: OrchestrationInput["context"];
   cognitiveToolsUsed: Set<string>;
+  cognitiveMeta: Map<string, CognitiveToolMetadata>;
 }
 
 export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrchestrator {
@@ -49,10 +58,13 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
     getSession(sessionId: string) {
       return sessions.get(sessionId);
     },
-    recordCognitiveTool(sessionId: string, toolName: string) {
+    recordCognitiveTool(sessionId: string, toolName: string, meta?: CognitiveToolMetadata) {
       const session = sessions.get(sessionId);
       if (session) {
         session.cognitiveToolsUsed.add(toolName);
+        if (meta) {
+          session.cognitiveMeta.set(toolName, meta);
+        }
       }
     },
     isSessionReady(sessionId?: string) {
@@ -179,6 +191,7 @@ function getOrCreateSession(
     memorySuggestions: [],
     memoryConfirmations: {},
     cognitiveToolsUsed: new Set<string>(),
+    cognitiveMeta: new Map<string, CognitiveToolMetadata>(),
     ...(input.context ? { context: input.context } : {}),
   };
 
@@ -427,13 +440,31 @@ function checkCognitiveGate(session: OrchestrationSession): { passed: boolean; r
   }
 
   const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
-  if (missing.length === 0) {
-    return { passed: true, reason: "" };
+  if (missing.length > 0) {
+    const toolList = missing.map((t) => `\`${t}\``).join(" and ");
+    return {
+      passed: false,
+      reason: `[KILO-KIT COGNITIVE GATE] Task mode '${session.route.taskMode}' (${req.label}) requires ${toolList} before writing or executing code. Call ${toolList} with the current plan/error, then retry.`,
+    };
   }
 
-  const toolList = missing.map((t) => `\`${t}\``).join(" and ");
-  return {
-    passed: false,
-    reason: `[KILO-KIT COGNITIVE GATE] Task mode '${session.route.taskMode}' (${req.label}) requires ${toolList} before writing or executing code. Call ${toolList} with the current plan/error, then retry.`,
-  };
+  // Substance validation: verify that think_step was not just a placeholder
+  const thinkMeta = session.cognitiveMeta.get("kilo_think_step");
+  if (thinkMeta && thinkMeta.isSuperficial) {
+    return {
+      passed: false,
+      reason: `[KILO-KIT COGNITIVE GATE] Thought submitted to kilo_think_step was superficial or placeholder (< 30 chars). You must articulate a substantive 3-option Trade-Off DAG (comparing Option A, Option B, and Option C with pros/cons/blast-radius) before code modification is unlocked.`,
+    };
+  }
+
+  // Substance validation: verify that grill_plan received a real plan
+  const grillMeta = session.cognitiveMeta.get("kilo_grill_plan");
+  if (grillMeta && grillMeta.planLength !== undefined && grillMeta.planLength < 30) {
+    return {
+      passed: false,
+      reason: `[KILO-KIT COGNITIVE GATE] Plan submitted to kilo_grill_plan was too brief (< 30 chars). Provide a concrete architecture or implementation plan for adversarial red-teaming.`,
+    };
+  }
+
+  return { passed: true, reason: "" };
 }
