@@ -439,16 +439,7 @@ function checkCognitiveGate(session: OrchestrationSession): { passed: boolean; r
     return { passed: true, reason: "" };
   }
 
-  const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
-  if (missing.length > 0) {
-    const toolList = missing.map((t) => `\`${t}\``).join(" and ");
-    return {
-      passed: false,
-      reason: `[KILO-KIT COGNITIVE GATE] Task mode '${session.route.taskMode}' (${req.label}) requires ${toolList} before writing or executing code. Call ${toolList} with the current plan/error, then retry.`,
-    };
-  }
-
-  // Substance validation: verify that think_step was not just a placeholder
+  // 1. Substance validation: verify that think_step (if called) was not just a placeholder
   const thinkMeta = session.cognitiveMeta.get("kilo_think_step");
   if (thinkMeta && thinkMeta.isSuperficial) {
     return {
@@ -457,12 +448,22 @@ function checkCognitiveGate(session: OrchestrationSession): { passed: boolean; r
     };
   }
 
-  // Substance validation: verify that grill_plan received a real plan
+  // 2. Substance validation: verify that grill_plan (if called) received a real plan
   const grillMeta = session.cognitiveMeta.get("kilo_grill_plan");
   if (grillMeta && grillMeta.planLength !== undefined && grillMeta.planLength < 30) {
     return {
       passed: false,
       reason: `[KILO-KIT COGNITIVE GATE] Plan submitted to kilo_grill_plan was too brief (< 30 chars). Provide a concrete architecture or implementation plan for adversarial red-teaming.`,
+    };
+  }
+
+  // 3. Required tools presence check
+  const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
+  if (missing.length > 0) {
+    const toolList = missing.map((t) => `\`${t}\``).join(" and ");
+    return {
+      passed: false,
+      reason: `[KILO-KIT COGNITIVE GATE] Task mode '${session.route.taskMode}' (${req.label}) requires ${toolList} before writing or executing code. Call ${toolList} with the current plan/error, then retry.`,
     };
   }
 
