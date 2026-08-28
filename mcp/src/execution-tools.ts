@@ -17,6 +17,10 @@ const DANGEROUS_COMMAND_PATTERNS = [
   /\breboot\b/i,
   /\binit\s+0\b/i,
   /\bchmod\s+-[rR]*\s+777\s+\//i,
+  /\bcurl\b.*\|\s*(?:bash|sh|zsh)\b/i,
+  /\bwget\b.*\|\s*(?:bash|sh|zsh)\b/i,
+  /\bnc\s+.*-e\s+\//i,
+  /\bbase64\s+-d\s*\|\s*(?:bash|sh)\b/i,
 ];
 
 export interface ReadFileInput {
@@ -46,6 +50,8 @@ export interface WriteFileResult {
   filePath: string;
   bytesWritten: number;
   action: "created" | "overwritten";
+  cleanCodeAudits?: string[] | undefined;
+  securityAudits?: string[] | undefined;
 }
 
 export interface EditFileInput {
@@ -61,6 +67,7 @@ export interface EditFileResult {
   replacements: number;
   syntaxStatus: "valid" | "warning" | "unsupported";
   message: string;
+  bracketBalance?: "balanced" | "unbalanced" | undefined;
 }
 
 export interface SearchFilesInput {
@@ -162,6 +169,27 @@ export function executeWriteFile(
     throw new Error(`File already exists: ${input.filePath}. Specify overwrite=true to overwrite.`);
   }
 
+  const cleanCodeAudits: string[] = [];
+  const securityAudits: string[] = [];
+
+  // Clean-code skill audit
+  if (/\bdebugger;/.test(input.content)) {
+    cleanCodeAudits.push("Contains 'debugger;' statement. Remove before committing.");
+  }
+  if (/catch\s*\([a-zA-Z0-9_]*\)\s*\{\s*\}/.test(input.content)) {
+    cleanCodeAudits.push("Contains empty catch block. Handle or log the error properly.");
+  }
+  if (!input.filePath.includes("test") && !input.filePath.includes("scratch") && !input.filePath.includes("tools")) {
+    if (/\bconsole\.log\(/.test(input.content)) {
+      cleanCodeAudits.push("Contains 'console.log' in production file. Prefer structured logging.");
+    }
+  }
+
+  // Security skill audit
+  if (/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"][A-Za-z0-9_\-\.]{24,}['"]/i.test(input.content)) {
+    securityAudits.push("Potential hardcoded secret or API token detected. Use environment variables.");
+  }
+
   mkdirSync(path.dirname(resolved), { recursive: true });
   writeFileSync(resolved, input.content, "utf8");
 
@@ -169,6 +197,8 @@ export function executeWriteFile(
     filePath: path.relative(repoRoot, resolved) || resolved,
     bytesWritten: Buffer.byteLength(input.content, "utf8"),
     action: exists ? "overwritten" : "created",
+    ...(cleanCodeAudits.length > 0 ? { cleanCodeAudits } : {}),
+    ...(securityAudits.length > 0 ? { securityAudits } : {}),
   };
 }
 
@@ -203,8 +233,9 @@ export function executeEditFile(
     ? originalContent.replaceAll(input.targetContent, input.replacementContent)
     : originalContent.replace(input.targetContent, input.replacementContent);
 
-  // Syntax validation
+  // Syntax validation & bracket balance
   let syntaxStatus: EditFileResult["syntaxStatus"] = "valid";
+  let bracketBalance: EditFileResult["bracketBalance"] = "balanced";
   let message = `Successfully replaced ${occurrences} occurrence(s) in ${input.filePath}.`;
 
   if (resolved.endsWith(".json")) {
@@ -213,6 +244,17 @@ export function executeEditFile(
     } catch (error) {
       syntaxStatus = "warning";
       message += ` (Warning: JSON syntax check failed: ${(error as Error).message})`;
+    }
+  } else if (/\.(ts|tsx|js|jsx)$/.test(resolved)) {
+    const openBraces = (newContent.match(/\{/g) || []).length;
+    const closeBraces = (newContent.match(/\}/g) || []).length;
+    const openParens = (newContent.match(/\(/g) || []).length;
+    const closeParens = (newContent.match(/\)/g) || []).length;
+
+    if (openBraces !== closeBraces || openParens !== closeParens) {
+      bracketBalance = "unbalanced";
+      syntaxStatus = "warning";
+      message += ` (Warning: Unbalanced braces/parentheses detected: braces ${openBraces}/${closeBraces}, parens ${openParens}/${closeParens})`;
     }
   }
 
@@ -223,6 +265,7 @@ export function executeEditFile(
     replacements: occurrences,
     syntaxStatus,
     message,
+    bracketBalance,
   };
 }
 

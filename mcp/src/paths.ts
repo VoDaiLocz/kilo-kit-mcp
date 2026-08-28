@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const SEGMENT_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+const SEGMENT_PATTERN = /^[a-z0-9_][a-z0-9_-]*$/;
 
 export function normalizeRepoRoot(repoRoot: string): string {
   return path.resolve(repoRoot);
