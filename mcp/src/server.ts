@@ -280,6 +280,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         category: z.string().max(80).optional().describe("Optional skill category, for example engineering or productivity."),
         skill: z.string().min(1).max(120).describe("Skill name or identifier (e.g. 'brainstorming', 'diagnose', 'playwright', 'productivity/brainstorming')."),
         maxChars: z.number().int().min(100).max(50000).optional().describe("Maximum SKILL.md characters to return."),
+        sessionId: z.string().optional().describe("Active session ID to register skill delivery"),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -288,12 +289,15 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ category, skill, maxChars, format }) => {
+    async ({ category, skill, maxChars, sessionId, format }) => {
       const loaded = await registry.loadSkill({
         ...(category ? { category } : {}),
         skill,
         ...(maxChars ? { maxChars } : {}),
       });
+      if (sessionId) {
+        orchestrator.recordCognitiveTool(sessionId, `skill:${loaded.skill.id}`);
+      }
       return textResponse(formatLoadedSkill(loaded, normalizeFormat(format)));
     },
   );
