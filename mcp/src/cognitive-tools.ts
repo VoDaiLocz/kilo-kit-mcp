@@ -112,6 +112,7 @@ export interface SynthesizeSkillResult {
 }
 
 // In-memory cognitive thoughts store per session
+// In-memory cognitive thoughts store per session
 const sessionThoughts = new Map<string, ThoughtRecord[]>();
 
 export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
@@ -121,6 +122,9 @@ export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
   }
 
   const thoughts = sessionThoughts.get(sessionKey)!;
+
+  // Anti-superficiality check: detect placeholder or trivial thoughts
+  const isSuperficial = input.thought.trim().length < 30 || /^(prepare|ready|next step|file creation|start coding)$/i.test(input.thought.trim());
 
   const record: ThoughtRecord = {
     thoughtNumber: input.thoughtNumber,
@@ -148,9 +152,13 @@ export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
 
   const branches = [...new Set(thoughts.map((t) => t.branchId).filter(Boolean))] as string[];
 
-  const chainSummary = `Thought ${record.thoughtNumber}/${record.totalThoughts}${
+  let chainSummary = `Thought ${record.thoughtNumber}/${record.totalThoughts}${
     record.branchId ? ` [Branch: ${record.branchId}]` : ""
   }: ${record.thought.slice(0, 150)}...`;
+
+  if (isSuperficial) {
+    chainSummary += " ⚠️ [NOTICE: Thought is brief. Ensure you articulate 3 distinct trade-off options (Option A vs B vs C) before code modification.]";
+  }
 
   return {
     currentThought: record,
@@ -164,76 +172,92 @@ export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
 export function executeGrillPlan(input: GrillPlanInput): GrillPlanResult {
   const depth = input.depth ?? "deep";
   const planText = input.plan.toLowerCase();
+  const contextText = (input.context ?? "").toLowerCase();
+  const combined = `${planText} ${contextText}`;
 
   const questions: GrillQuestion[] = [];
   let riskScore = 15; // baseline
 
-  // Inversion analysis
+  // 1. Inversion / Catastrophic Failure Analysis (Luôn có)
   questions.push({
     category: "inversion",
     title: "Inversion / Catastrophic Failure Analysis",
-    concern: "Assumes happy path where dependencies and inputs are always valid.",
+    concern: "Assumes happy path where dependencies, network, and inputs are always valid.",
     stressTestQuestion:
-      "What if the network times out, input schema has unexpected fields, or concurrency is 100x higher? Where will this plan break first?",
-    recommendation: "Introduce defensive validation at every IO boundary and ensure timeouts/error boundaries exist.",
+      "What if input data is corrupted, empty, or 100x larger than expected? At what exact line/boundary will this fail first?",
+    recommendation: "Introduce defensive validation at every IO boundary and ensure graceful fallbacks exist.",
   });
 
-  // Simplification cascade
-  if (planText.length > 300 || planText.includes("middleware") || planText.includes("database") || planText.includes("service")) {
+  // 2. Simplification cascade
+  if (combined.length > 200 || combined.includes("middleware") || combined.includes("database") || combined.includes("service") || combined.includes("manager") || combined.includes("provider")) {
     questions.push({
       category: "simplification",
       title: "Simplification Cascade Check",
-      concern: "Plan may introduce unnecessary indirection or over-engineering.",
+      concern: "Plan may introduce unnecessary indirection, wrapper bloat, or over-engineering.",
       stressTestQuestion:
-        "If you had to solve this in 50 lines of code without new abstractions or libraries, how would it look?",
-      recommendation: "Eliminate shallow wrapper functions and consolidate coupled logic into deep modules.",
+        "If you had to implement this cleanly in under 50 lines of code without extra helper abstractions, how would the architecture look?",
+      recommendation: "Eliminate shallow wrapper layers and consolidate tightly-coupled logic into deep, concise modules.",
     });
     riskScore += 20;
   }
 
-  // Blast radius & Edge-cases
-  if (planText.includes("delete") || planText.includes("remove") || planText.includes("override") || planText.includes("global") || planText.includes("state")) {
+  // 3. Blast radius & State Invalidation
+  if (combined.includes("delete") || combined.includes("remove") || combined.includes("override") || combined.includes("global") || combined.includes("state") || combined.includes("store") || combined.includes("context") || combined.includes("cache")) {
     questions.push({
       category: "blast_radius",
       title: "Blast Radius & State Invalidation",
-      concern: "Mutating shared or global state could cause subtle regressions in unrelated components.",
+      concern: "Mutating shared, global, or persistent state can trigger cascading side-effects in dependent components.",
       stressTestQuestion:
-        "Does any other module rely on the existing state or behavior being modified here? How is isolation guaranteed?",
-      recommendation: "Keep changes localized, use immutable transitions, and write regression tests for dependent modules.",
+        "Which other modules or UI views subscribe to or read this state? How is isolation and immutability guaranteed during updates?",
+      recommendation: "Keep changes localized, use immutable transitions, and write regression checks for all dependent consumers.",
     });
     riskScore += 25;
   }
 
-  if (planText.includes("async") || planText.includes("promise") || planText.includes("fetch") || planText.includes("api")) {
+  // 4. Async Race Conditions & Error Boundaries
+  if (combined.includes("async") || combined.includes("promise") || combined.includes("fetch") || combined.includes("api") || combined.includes("stream") || combined.includes("effect") || combined.includes("load")) {
     questions.push({
       category: "edge_case",
-      title: "Async Race Conditions & Error Handling",
-      concern: "Uncaught rejected promises or un-awaited async operations.",
-      stressTestQuestion: "What happens if a second request arrives before the first async operation completes?",
-      recommendation: "Use AbortController or idempotency keys to handle in-flight race conditions.",
+      title: "Async Race Conditions & Network Glitches",
+      concern: "Uncaught promise rejections, un-awaited operations, or race conditions when rapid user events occur.",
+      stressTestQuestion: "What happens if the user triggers a second action or navigates away before the pending async operation completes?",
+      recommendation: "Use AbortController, cleanup callbacks in useEffect/lifecycle, and guarantee idempotency.",
+    });
+    riskScore += 20;
+  }
+
+  // 5. UI / UX / Mobile Safety (Nếu là task UI / Frontend)
+  if (combined.includes("ui") || combined.includes("component") || combined.includes("react") || combined.includes("view") || combined.includes("button") || combined.includes("modal") || combined.includes("render") || combined.includes("layout")) {
+    questions.push({
+      category: "edge_case",
+      title: "UI Responsiveness, Layout Shift & Touch Safety",
+      concern: "Potential layout breaking on small screens, missing loading/error skeleton states, or unreachable touch targets.",
+      stressTestQuestion: "Does the UI remain functional and legible on 360px mobile viewports? Are touch targets at least 44x44px?",
+      recommendation: "Apply design/aesthetic standards, ensure fluid responsive layouts, and include clear loading/empty/error states.",
     });
     riskScore += 15;
   }
 
   let verdict: GrillPlanResult["readinessVerdict"] = "APPROVED";
-  if (riskScore > 50) {
+  if (riskScore >= 40) {
     verdict = "REQUIRES_HARDENING";
   }
-  if (riskScore > 75) {
+  if (riskScore > 80) {
     verdict = "REVISE_ARCHITECTURE";
   }
 
   const checklist = [
     "Verify inputs with strict runtime schema checks (e.g. Zod or type guards).",
-    "Ensure graceful degradation when external calls or disk IO fail.",
-    "Add automated unit/integration test covering edge cases before code changes.",
+    "Ensure graceful degradation when external calls, network, or disk IO fail.",
+    "Add automated unit/integration or Playwright E2E verification covering edge cases.",
     "Confirm no global state or shared memory is mutated unexpectedly.",
+    "Verify responsive layout and mobile touch safety for all UI touchpoints.",
   ];
 
   return {
     riskScore: Math.min(100, riskScore),
     readinessVerdict: verdict,
-    summary: `Grilling assessment completed (${depth} mode). ${questions.length} critical questions identified. Risk score: ${riskScore}/100.`,
+    summary: `Grilling assessment completed (${depth} mode). ${questions.length} critical stress-test areas identified. Risk score: ${Math.min(100, riskScore)}/100 (Verdict: ${verdict}).`,
     grillQuestions: questions,
     hardeningChecklist: checklist,
   };
