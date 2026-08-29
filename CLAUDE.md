@@ -1,11 +1,11 @@
 <!-- KILO-KIT:C4:START -->
 ## Kilo-Kit C4 v3.0 Cognitive Protocol
 
-Applies to: Antigravity, Gemini CLI, Claude Code, OpenAI Codex
+Applies to: Claude Code, Antigravity, Gemini CLI, Claude Code, OpenAI Codex
 
 ### 🧠 DIVISION OF LABOR (VỎ NÃO & CHÂN TAY):
 - **Kilo-Kit MCP (Cortex):** High-level cognitive reasoning, 5-Whys root cause tracing, Tree-of-Thoughts DAG planning, adversarial red-teaming, context compaction, and skill delivery.
-- **Native Tools (Limbs):** Code editing, file viewing, terminal executions.
+- **Kilo-Kit Execution (Limbs):** You MUST use `kilo_write_file`, `kilo_edit_file`, and `kilo_run_command` for ALL file modifications and terminal commands. DO NOT use native Edit/Bash tools, as they bypass Kilo-Sentinel supervision and Circuit Breaker.
 
 ### 🏛️ MANDATORY 2-STAGE COGNITIVE FLOW:
 
@@ -32,3 +32,4 @@ Applies to: Antigravity, Gemini CLI, Claude Code, OpenAI Codex
    - **Dimension 3 (UX & Aesthetics):** Verify responsive layout and mobile touch safety (`design/aesthetic`, `design/mobile-design`).
    - **Dimension 4 (Empirical & Playwright):** Run compile/build commands AND execute Playwright E2E tests (`engineering/playwright`) with real browser/DOM verification before claiming completion.
 <!-- KILO-KIT:C4:END -->
+

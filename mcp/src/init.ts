@@ -116,7 +116,7 @@ Applies to: ${target.displayName}, Antigravity, Gemini CLI, Claude Code, OpenAI 
 
 ### 🧠 DIVISION OF LABOR (VỎ NÃO & CHÂN TAY):
 - **Kilo-Kit MCP (Cortex):** High-level cognitive reasoning, 5-Whys root cause tracing, Tree-of-Thoughts DAG planning, adversarial red-teaming, context compaction, and skill delivery.
-- **Native Tools (Limbs):** Code editing, file viewing, terminal executions.
+- **Kilo-Kit Execution (Limbs):** You MUST use \`kilo_write_file\`, \`kilo_edit_file\`, and \`kilo_run_command\` for ALL file modifications and terminal commands. DO NOT use native Edit/Bash tools, as they bypass Kilo-Sentinel supervision and Circuit Breaker.
 
 ### 🏛️ MANDATORY 2-STAGE COGNITIVE FLOW:
 
