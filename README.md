@@ -40,37 +40,31 @@ Kilo-Kit is an agentic MCP runtime and curated 177-skill catalog designed to enf
 
 ---
 
-## ⚡ 1-Click Quick Setup (Universal AI Client Support)
+## 🚀 Industry-Standard Team Rollout (Configuration as Code)
 
-Choose the setup method that best fits your workflow:
+Kilo-Kit follows the industry standard for AI Agent configuration (similar to Aider, Cline, and Claude Code). We strictly separate **Global Tooling** (installed on each developer's machine) from **Project Rules** (committed to your Git repository).
 
-### Option A: Universal Auto-Installer (Recommended)
-Run the auto-configurator in your terminal. It automatically detects and configures **Antigravity CLI, Cursor IDE, Windsurf, Claude Code, and Claude Desktop** in 1 second:
-
-```bash
-npx -y @vodailoc/kilo-kit-mcp setup
-```
-
-### Option B: Claude Code CLI
-Add Kilo-Kit directly to Claude Code with a single command:
+### Step 1: Global Tooling (For all Developers)
+Every developer on the team runs this command **once** to install the Kilo-Kit MCP Server globally into their IDEs (Cursor, Claude Code, Windsurf, Antigravity):
 
 ```bash
-claude mcp add kilo-kit -- npx -y @vodailoc/kilo-kit-mcp
+npm install -g @vodailoc/kilo-kit-mcp
+kilo-kit-init global
 ```
+*(This sets up the `mcpServers` configurations and global Git aliases `git kilo-init` / `git kilo-clone` on the host machine).*
 
-### Option C: Manual MCP Configuration (`mcpServers`)
-Add the following JSON block to your AI client's configuration file (e.g. `~/.cursor/mcp.json`, `~/.gemini/antigravity-cli/mcp_config.json`, or `claude_desktop_config.json`):
+### Step 2: Project Rules (For Tech Leads)
+When setting up a new repository, the Tech Lead generates the C4 Protocol rules for the project:
 
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
-    }
-  }
-}
+```bash
+kilo-kit-init init --client all
 ```
+This generates `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`. **You must commit these files to your Git repository.** 
+
+### 🔄 The Zero-Config Workflow
+When a new developer joins the team and clones the repository, **they do not need to configure anything**. Their globally installed Agent (from Step 1) will automatically read the committed `CLAUDE.md` (from Step 2), binding the local project securely to the Kilo-Kit cognitive engine.
+
+*(Note: API keys and MCP configurations are kept strictly out of the repository, adhering to security best practices).*
 
 ---
 
@@ -179,24 +173,6 @@ Kilo-Kit bundles 177 production-ready skills categorized into:
 * **Agent Frameworks:** `workflow-state-machines`, `agent-memory`, `agentic-rag`, `multi-agent-orchestration`, `mcp-agent-patterns`.
 * **Security & Defense:** `ai-guardrails`, `red-team-tactics`, `security-best-practices`, `vulnerability-scanner`.
 * **Operations & Cloud:** `docker-devops`, `server-management`, `chrome-devtools`, `performance-profiling`.
-
----
-
-## ⚙️ Workspace Bootstrapping (Optional Multi-Agent Fallback)
-
-In MCP-integrated environments (like Antigravity CLI, Cursor, Claude Code), Kilo-Kit **requires zero `.md` files in project repos**.
-
-If you share a repository with external team members using standalone LLM clients without global MCP, you can bootstrap standard markdown instruction blocks:
-
-```bash
-# Bootstrap C4 rules for all major AI clients in target project
-kilo-kit-init init --client all --dir /path/to/project
-```
-
-Generates idempotent C4 hooks in:
-* `GEMINI.md` (Gemini CLI / Antigravity)
-* `AGENTS.md` (OpenAI Codex)
-* `CLAUDE.md` (Claude Code)
 
 ---
 

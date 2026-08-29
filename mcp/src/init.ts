@@ -3,6 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSyn
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const START_MARKER = "<!-- KILO-KIT:C4:START -->";
 const END_MARKER = "<!-- KILO-KIT:C4:END -->";
@@ -327,7 +328,7 @@ type CliCommand =
 
 function parseArgs(argv: string[]): CliCommand {
   const command = argv[0];
-  if (command === "setup" || command === "install") {
+  if (command === "setup" || command === "install" || command === "global") {
     return { type: "setup" };
   }
 
@@ -385,18 +386,37 @@ function usage(): string {
     "🚀 Kilo-Kit CLI",
     "",
     "Commands:",
-    "  kilo-kit-init setup",
-    "    Automatically detects & registers Kilo-Kit MCP into Antigravity, Cursor, Claude Code, Windsurf & Claude Desktop.",
+    "  kilo-kit-init global (or setup)",
+    "    Automatically registers Kilo-Kit MCP into AI IDEs/Clients (Cursor, Claude, Windsurf, etc.)",
+    "    and configures Global Git Aliases (git kilo-init, git kilo-clone) for zero-config rollout.",
     "",
     "  kilo-kit-init init [--client gemini|codex|claude|all] [--dir <path>]",
     "    Bootstraps C4 protocol rule files into target project workspace.",
     "",
     "Examples:",
-    "  npx -y @vodailoc/kilo-kit-mcp setup",
-    "  kilo-kit-init setup",
+    "  npx -y @vodailoc/kilo-kit-mcp global",
     "  kilo-kit-init init --client all",
     "  kilo-kit-init init --client gemini --dir /path/to/project",
-  ].join("\n");
+  ].join("\\n");
+}
+
+export function setupGitGlobalAliases(): void {
+  try {
+    // We use npx to ensure it pulls the global or latest package, 
+    // or if installed globally it runs kilo-kit-init directly.
+    const kiloInitCmd = "!git init && npx -y @vodailoc/kilo-kit-mcp init --client all";
+    const kiloCloneCmd = "!f() { git clone \"$1\" && cd \"$(basename \"$1\" .git)\" && npx -y @vodailoc/kilo-kit-mcp init --client all; }; f";
+
+    execSync(`git config --global alias.kilo-init '${kiloInitCmd}'`, { stdio: "ignore" });
+    execSync(`git config --global alias.kilo-clone '${kiloCloneCmd}'`, { stdio: "ignore" });
+
+    console.log(`✅ Git Global Aliases configured:`);
+    console.log(`   - Run 'git kilo-init' instead of 'git init'`);
+    console.log(`   - Run 'git kilo-clone <url>' instead of 'git clone <url>'`);
+    console.log(`   (These will automatically bootstrap Kilo-Kit rules into the repository)`);
+  } catch (err: any) {
+    console.warn(`⚠️ Failed to set git config aliases: ${err?.message}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -408,7 +428,9 @@ async function main(): Promise<void> {
       const icon = r.action === "configured" ? "✅ Added" : r.action === "already_configured" ? "🔄 Updated" : "⚠️ Skipped";
       console.log(`${icon} [${r.client}]: ${r.configPath}`);
     }
-    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.7.0.");
+    console.log("");
+    setupGitGlobalAliases();
+    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.8.0.");
     return;
   }
 

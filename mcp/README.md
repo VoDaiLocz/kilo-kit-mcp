@@ -74,32 +74,29 @@ MCP smoke check passed.
 
 ---
 
-## ⚙️ Client Configuration
+## 🚀 Industry-Standard Team Rollout (Configuration as Code)
 
-Use the published npm package in any MCP-capable client:
+Kilo-Kit follows the industry standard for AI Agent configuration (similar to Aider, Cline, and Claude Code). We strictly separate **Global Tooling** (installed on each developer's machine) from **Project Rules** (committed to your Git repository).
 
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
-    }
-  }
-}
-```
-
-The npm package includes the Kilo-Kit skill library, core master file, validator, and built MCP server.
-
-Install the host-agent bootstrap rule in each project where you want C4 to run automatically:
+### Step 1: Global Tooling (For all Developers)
+Every developer on the team runs this command **once** to install the Kilo-Kit MCP Server globally into their IDEs (Cursor, Claude Code, Windsurf, Antigravity):
 
 ```bash
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client gemini
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client codex
-npx -y --package=@vodailoc/kilo-kit-mcp kilo-kit-init init --client claude
+npm install -g @vodailoc/kilo-kit-mcp
+kilo-kit-init global
 ```
+*(This sets up the `mcpServers` configurations and global Git aliases `git kilo-init` / `git kilo-clone` on the host machine).*
 
-Use `--client all` to write `GEMINI.md`, `AGENTS.md`, and `CLAUDE.md` in the target project. Use `--dir <path>` to initialize another project directory.
+### Step 2: Project Rules (For Tech Leads)
+When setting up a new repository, the Tech Lead generates the C4 Protocol rules for the project:
+
+```bash
+kilo-kit-init init --client all
+```
+This generates `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`. **You must commit these files to your Git repository.** 
+
+### 🔄 The Zero-Config Workflow
+When a new developer joins the team and clones the repository, **they do not need to configure anything**. Their globally installed Agent (from Step 1) will automatically read the committed `CLAUDE.md` (from Step 2), binding the local project securely to the Kilo-Kit cognitive engine.
 
 Route telemetry is in-memory by default. To persist route decisions between server runs, set:
 
