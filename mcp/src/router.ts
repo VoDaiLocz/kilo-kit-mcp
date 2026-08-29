@@ -110,13 +110,12 @@ function buildWorkflow(registry: SkillRegistry, mode: string, ranked: RouteCandi
 }
 
 function findSkillById(registry: SkillRegistry, id: string): SkillRecord | undefined {
-  const [category, skill] = id.split("/");
-  if (!category || !skill) {
+  if (!id) {
     return undefined;
   }
 
   try {
-    return registry.getSkill(category, skill);
+    return registry.getSkill(id);
   } catch {
     return undefined;
   }

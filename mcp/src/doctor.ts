@@ -1,7 +1,9 @@
+#!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 
 import { createSkillRegistry } from "./registry.js";
 import { createKiloKitServer } from "./server.js";
@@ -67,23 +69,23 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 3. Skill Library Discovery
+  // 3. Skill Library Discovery (Expect 177 skills)
   try {
     const registry = await createSkillRegistry({ repoRoot });
     const skills = registry.listSkills();
-    if (skills.length >= 170) {
+    if (skills.length >= 177) {
       checks.push({
         name: "Skill Library",
         category: "skills",
         status: "pass",
-        message: `Successfully indexed ${skills.length} skills in repository.`,
+        message: `Successfully indexed all ${skills.length}/177 skills in repository.`,
       });
     } else {
       checks.push({
         name: "Skill Library",
         category: "skills",
         status: "warn",
-        message: `Found only ${skills.length} skills (expected ~177).`,
+        message: `Found only ${skills.length} skills (expected 177).`,
       });
     }
   } catch (err: unknown) {
@@ -141,15 +143,26 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 5. MCP 19-Tools Discovery Check
+  // 5. MCP 22-Tools Discovery Check
   try {
     const server = await createKiloKitServer({ repoRoot });
-    checks.push({
-      name: "MCP Server Runtime",
-      category: "server",
-      status: "pass",
-      message: "All 19 tools, resources, and prompts initialized cleanly.",
-    });
+    const registeredTools: string[] = Object.keys((server as any)._registeredTools ?? {});
+    const toolCount = registeredTools.length;
+    if (toolCount >= 22) {
+      checks.push({
+        name: "MCP Server Runtime",
+        category: "server",
+        status: "pass",
+        message: `All ${toolCount} tools, resources, and prompts initialized cleanly.`,
+      });
+    } else {
+      checks.push({
+        name: "MCP Server Runtime",
+        category: "server",
+        status: "warn",
+        message: `Initialized with ${toolCount} tools (expected 22).`,
+      });
+    }
   } catch (err: unknown) {
     checks.push({
       name: "MCP Server Runtime",
@@ -169,4 +182,52 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     timestamp: new Date().toISOString(),
     summary: `Kilo-Kit Doctor: ${checks.filter((c) => c.status === "pass").length}/${checks.length} checks passed. Overall Status: ${overallStatus.toUpperCase()}`,
   };
+}
+
+export function printDoctorCliReport(report: DoctorReport): void {
+  const statusBadge =
+    report.overallStatus === "healthy"
+      ? "\x1b[92m[HEALTHY]\x1b[0m"
+      : report.overallStatus === "degraded"
+        ? "\x1b[93m[DEGRADED]\x1b[0m"
+        : "\x1b[91m[BROKEN]\x1b[0m";
+
+  console.log(`\n🏥 \x1b[1mKilo-Kit System Health Doctor\x1b[0m ${statusBadge}`);
+  console.log(`Timestamp: ${report.timestamp}\n`);
+
+  for (const check of report.checks) {
+    const icon =
+      check.status === "pass"
+        ? "\x1b[92m✅ PASS\x1b[0m"
+        : check.status === "warn"
+          ? "\x1b[93m⚠️ WARN\x1b[0m"
+          : "\x1b[91m❌ FAIL\x1b[0m";
+    console.log(`  ${icon} \x1b[1m${check.name}\x1b[0m: ${check.message}`);
+    if (check.details) {
+      console.log(`         \x1b[90m${check.details}\x1b[0m`);
+    }
+  }
+
+  console.log(`\n\x1b[1mSummary:\x1b[0m ${report.summary}\n`);
+}
+
+const isDirectlyExecuted =
+  process.argv[1] &&
+  (process.argv[1].endsWith("doctor.js") ||
+    process.argv[1].endsWith("doctor.ts") ||
+    process.argv[1].endsWith("kilo-kit-doctor"));
+
+if (isDirectlyExecuted) {
+  const repoRoot = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), "../.."));
+  runKiloKitDoctor(repoRoot)
+    .then((report) => {
+      printDoctorCliReport(report);
+      if (report.overallStatus === "broken") {
+        process.exit(1);
+      }
+    })
+    .catch((err) => {
+      console.error("\x1b[91mDoctor failed with unexpected error:\x1b[0m", err);
+      process.exit(1);
+    });
 }

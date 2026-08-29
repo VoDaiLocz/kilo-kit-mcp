@@ -213,10 +213,11 @@ async function readSkillRecord(repoRoot: string, skillFile: string): Promise<Ski
   const relativeDirectory = toPosixPath(repoRoot, directory);
   const parts = relativeDirectory.split("/");
   const skillsIndex = parts.indexOf("skills");
+  const relFromSkills = parts.slice(skillsIndex + 1).join("/");
   const category = parts[skillsIndex + 1];
   const folderName = parts.at(-1);
 
-  if (!category || !folderName) {
+  if (!category || !folderName || !relFromSkills) {
     throw new Error(`Could not infer skill category for ${relativeDirectory}`);
   }
 
@@ -225,7 +226,7 @@ async function readSkillRecord(repoRoot: string, skillFile: string): Promise<Ski
   const skillPath = toPosixPath(repoRoot, skillFile);
 
   return {
-    id: `${category}/${folderName}`,
+    id: relFromSkills,
     category,
     name: folderName,
     title: name,

@@ -15,7 +15,8 @@
   "bin": {
     "kilo-kit-mcp": "mcp/dist/server.js",
     "kilo-kit-init": "mcp/dist/init.js",
-    "kilo-kit-setup": "mcp/dist/init.js"
+    "kilo-kit-setup": "mcp/dist/init.js",
+    "kilo-kit-doctor": "mcp/dist/doctor.js"
   },
   "files": [
     "LICENSE",
@@ -31,6 +32,7 @@
     "src/tools/validate-skill.js"
   ],
   "scripts": {
+    "doctor": "node mcp/dist/doctor.js",
     "mcp:install": "npm --prefix mcp install",
     "mcp:build": "npm --prefix mcp run build",
     "mcp:test": "npm --prefix mcp test",

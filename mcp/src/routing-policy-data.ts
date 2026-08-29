@@ -359,7 +359,7 @@ export const SKILL_SIGNAL_WEIGHTS: Record<string, Record<string, number>> = {
     security: 54,
     "agent-system": 24,
   },
-  "kilo-kit/security": {
+  "kilo-kit/development/security": {
     security: 48,
   },
   "engineering/domain-modeling": {
@@ -561,7 +561,7 @@ export const WORKFLOWS: Record<string, WorkflowDefinition[]> = {
       reason: "Evaluate threat models, prompt injection risks, and sandbox boundaries.",
     },
     {
-      id: "kilo-kit/security",
+      id: "kilo-kit/development/security",
       role: "primary",
       reason: "Apply secure coding principles and OWASP mitigations.",
     },

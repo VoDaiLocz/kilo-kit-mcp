@@ -55,4 +55,18 @@ describe("skill registry", () => {
     const cleanCode = registry.getSkill("clean-code");
     expect(cleanCode.id).toBe("engineering/clean-code");
   });
+
+  it("indexes all 177 skills without nested collision", async () => {
+    const registry = await createSkillRegistry({ repoRoot });
+    const skills = registry.listSkills();
+
+    expect(skills.length).toBe(177);
+
+    // Verify nested games skills exist with distinct IDs
+    const games2d = registry.getSkill("games/2d-games");
+    expect(games2d.id).toBe("games/2d-games");
+
+    const nestedGames2d = registry.getSkill("games/game-development/2d-games");
+    expect(nestedGames2d.id).toBe("games/game-development/2d-games");
+  });
 });

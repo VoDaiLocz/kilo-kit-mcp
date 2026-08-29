@@ -218,7 +218,7 @@ describe("intent router", () => {
     expect(result.taskMode).toBe("security");
     expect(result.workflow.map((step) => step.skill.id)).toEqual([
       "security/ai-guardrails",
-      "kilo-kit/security",
+      "kilo-kit/development/security",
       "engineering/vulnerability-scanner",
       "productivity/verification-before-completion",
     ]);
