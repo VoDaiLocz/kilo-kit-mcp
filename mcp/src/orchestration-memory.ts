@@ -3,6 +3,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type {
+  CheckpointInput,
+  CheckpointRecord,
   LearningReflectionInput,
   LearningReflectionRecord,
   MemoryDecision,
@@ -12,6 +14,8 @@ import type {
   MemorySuggestion,
   MemorySuggestionInput,
   OrchestrationSessionRecord,
+  TrajectoryInput,
+  TrajectoryRecord,
   WorkflowOutcomeRecord,
 } from "./orchestration-types.js";
 
@@ -23,6 +27,10 @@ export interface OrchestrationMemoryStore {
   recordOutcome(outcome: WorkflowOutcomeRecord): void;
   recordReflection(reflection: LearningReflectionInput): LearningReflectionRecord;
   getReflections(filter?: { taskMode?: string; limit?: number }): LearningReflectionRecord[];
+  recordTrajectory(trajectory: TrajectoryInput): TrajectoryRecord;
+  getTrajectories(sessionId: string, limit?: number): TrajectoryRecord[];
+  recordCheckpoint(checkpoint: CheckpointInput): CheckpointRecord;
+  getCheckpoints(sessionId: string): CheckpointRecord[];
   report(): MemoryReport;
 }
 
@@ -37,6 +45,8 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
   const sessions = new Map<string, OrchestrationSessionRecord>();
   const outcomes: WorkflowOutcomeRecord[] = [];
   const reflections: LearningReflectionRecord[] = [];
+  const trajectories: TrajectoryRecord[] = [];
+  const checkpoints: CheckpointRecord[] = [];
 
   return {
     rememberFact(fact) {
@@ -77,6 +87,48 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
         filtered = filtered.filter((r) => r.taskMode === filter.taskMode);
       }
       return filtered.slice(0, filter?.limit ?? 50).map(clone);
+    },
+    recordTrajectory(trajectory) {
+      const record: TrajectoryRecord = {
+        id: randomUUID(),
+        sessionId: trajectory.sessionId,
+        stepNumber: trajectory.stepNumber,
+        toolName: trajectory.toolName,
+        toolArgs: clone(trajectory.toolArgs),
+        toolArgsHash: trajectory.toolArgsHash,
+        toolResultSummary: trajectory.toolResultSummary,
+        status: trajectory.status,
+        durationMs: trajectory.durationMs,
+        sentinelVerdict: trajectory.sentinelVerdict ? clone(trajectory.sentinelVerdict) : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      trajectories.push(record);
+      return clone(record);
+    },
+    getTrajectories(sessionId, limit = 50) {
+      return trajectories
+        .filter((t) => t.sessionId === sessionId)
+        .slice(0, limit)
+        .map(clone);
+    },
+    recordCheckpoint(checkpoint) {
+      const record: CheckpointRecord = {
+        id: randomUUID(),
+        sessionId: checkpoint.sessionId,
+        checkpointName: checkpoint.checkpointName,
+        state: checkpoint.state,
+        groundedFiles: [...checkpoint.groundedFiles],
+        circuitBreakerState: checkpoint.circuitBreakerState,
+        metadata: checkpoint.metadata ? clone(checkpoint.metadata) : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      checkpoints.push(record);
+      return clone(record);
+    },
+    getCheckpoints(sessionId) {
+      return checkpoints
+        .filter((c) => c.sessionId === sessionId)
+        .map(clone);
     },
     report() {
       return {
@@ -154,6 +206,32 @@ export async function createSqliteOrchestrationMemory(
       lessons_learned TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS katl_trajectories (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      step_number INTEGER NOT NULL,
+      tool_name TEXT NOT NULL,
+      tool_args_json TEXT NOT NULL,
+      tool_args_hash TEXT NOT NULL,
+      tool_result_summary TEXT NOT NULL,
+      status TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      sentinel_verdict_json TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_katl_trajectories_session ON katl_trajectories(session_id, step_number);
+
+    CREATE TABLE IF NOT EXISTS katl_checkpoints (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      checkpoint_name TEXT NOT NULL,
+      state TEXT NOT NULL,
+      grounded_files_json TEXT NOT NULL,
+      circuit_breaker_state TEXT NOT NULL,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_katl_checkpoints_session ON katl_checkpoints(session_id, created_at);
   `);
 
   return {
@@ -295,6 +373,103 @@ export async function createSqliteOrchestrationMemory(
         skillsEvaluated: JSON.parse(row.skills_evaluated_json || "[]") as LearningReflectionRecord["skillsEvaluated"],
         lessonsLearned: row.lessons_learned,
         createdAt: row.created_at,
+      }));
+    },
+    recordTrajectory(trajectory) {
+      const id = randomUUID();
+      const createdAt = new Date().toISOString();
+      database
+        .prepare(
+          `INSERT INTO katl_trajectories
+             (id, session_id, step_number, tool_name, tool_args_json, tool_args_hash, tool_result_summary, status, duration_ms, sentinel_verdict_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          trajectory.sessionId,
+          trajectory.stepNumber,
+          trajectory.toolName,
+          JSON.stringify(trajectory.toolArgs),
+          trajectory.toolArgsHash,
+          trajectory.toolResultSummary,
+          trajectory.status,
+          trajectory.durationMs,
+          trajectory.sentinelVerdict ? JSON.stringify(trajectory.sentinelVerdict) : null,
+          createdAt,
+        );
+      return { id, ...trajectory, createdAt };
+    },
+    getTrajectories(sessionId, limit = 50) {
+      const stmt = database.prepare("SELECT * FROM katl_trajectories WHERE session_id = ? ORDER BY step_number ASC LIMIT ?");
+      const rows = (stmt.all as (...args: unknown[]) => unknown[])(sessionId, limit) as unknown as Array<{
+        id: string;
+        session_id: string;
+        step_number: number;
+        tool_name: string;
+        tool_args_json: string;
+        tool_args_hash: string;
+        tool_result_summary: string;
+        status: "success" | "failure" | "blocked" | "tripped";
+        duration_ms: number;
+        sentinel_verdict_json: string | null;
+        created_at: string;
+      }>;
+      return rows.map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        stepNumber: r.step_number,
+        toolName: r.tool_name,
+        toolArgs: JSON.parse(r.tool_args_json || "{}") as Record<string, unknown>,
+        toolArgsHash: r.tool_args_hash,
+        toolResultSummary: r.tool_result_summary,
+        status: r.status,
+        durationMs: r.duration_ms,
+        sentinelVerdict: r.sentinel_verdict_json ? (JSON.parse(r.sentinel_verdict_json) as Record<string, unknown>) : undefined,
+        createdAt: r.created_at,
+      }));
+    },
+    recordCheckpoint(checkpoint) {
+      const id = randomUUID();
+      const createdAt = new Date().toISOString();
+      database
+        .prepare(
+          `INSERT INTO katl_checkpoints
+             (id, session_id, checkpoint_name, state, grounded_files_json, circuit_breaker_state, metadata_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          checkpoint.sessionId,
+          checkpoint.checkpointName,
+          checkpoint.state,
+          JSON.stringify(checkpoint.groundedFiles),
+          checkpoint.circuitBreakerState,
+          checkpoint.metadata ? JSON.stringify(checkpoint.metadata) : null,
+          createdAt,
+        );
+      return { id, ...checkpoint, createdAt };
+    },
+    getCheckpoints(sessionId) {
+      const stmt = database.prepare("SELECT * FROM katl_checkpoints WHERE session_id = ? ORDER BY created_at DESC");
+      const rows = (stmt.all as (...args: unknown[]) => unknown[])(sessionId) as unknown as Array<{
+        id: string;
+        session_id: string;
+        checkpoint_name: string;
+        state: string;
+        grounded_files_json: string;
+        circuit_breaker_state: "CLOSED" | "HALF_OPEN" | "OPEN";
+        metadata_json: string | null;
+        created_at: string;
+      }>;
+      return rows.map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        checkpointName: r.checkpoint_name,
+        state: r.state,
+        groundedFiles: JSON.parse(r.grounded_files_json || "[]") as string[],
+        circuitBreakerState: r.circuit_breaker_state,
+        metadata: r.metadata_json ? (JSON.parse(r.metadata_json) as Record<string, unknown>) : undefined,
+        createdAt: r.created_at,
       }));
     },
     report() {

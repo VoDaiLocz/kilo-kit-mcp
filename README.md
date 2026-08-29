@@ -16,7 +16,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/skills-177-06b6d4?style=for-the-badge&labelColor=0f172a" alt="177 skills">
-  <img src="https://img.shields.io/badge/tools-19%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="19 MCP tools">
+  <img src="https://img.shields.io/badge/tools-22%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="22 MCP tools">
   <img src="https://img.shields.io/badge/MCP-ready-14b8a6?style=for-the-badge&logo=modelcontextprotocol&labelColor=0f172a" alt="MCP ready">
   <img src="https://img.shields.io/badge/Codex-ready-111827?style=for-the-badge&logo=openai&labelColor=0f172a" alt="Codex ready">
   <img src="https://img.shields.io/badge/Node-%3E%3D20-339933?style=for-the-badge&logo=nodedotjs&labelColor=0f172a" alt="Node >=20">
@@ -25,7 +25,7 @@
 
 # Kilo-Kit: Autonomous Cognitive Flow & Quality Engine for AI Coding Agents
 
-> **Version:** 1.7.0  
+> **Version:** 1.8.0  
 > **Author:** Kilo-Kit Team  
 > **License:** Apache 2.0  
 
@@ -33,10 +33,10 @@ Kilo-Kit is an agentic MCP runtime and curated 177-skill catalog designed to enf
 
 ### 🧠 Core Architectural Pillars:
 1. **Division of Labor (Cortex vs Limbs):** Kilo-Kit acts as the high-level cognitive brain (Tree of Thoughts, 5-Whys root cause analysis, adversarial stress-testing, context compaction) while host clients handle surgical I/O.
-2. **Two-Stage Cognitive Architecture:** Moves past brittle prompt regex matching. Performs read-only grounded exploration first, then dynamically dispatches tailored cognitive tools and skills.
-3. **Fuzzy Skill & Alias Resolver:** Instant, resilient skill loading with support for aliases (`brainstorming`, `diagnose`, `playwright`, `clean-code`, `tdd`).
-4. **4D Quality Assurance & Playwright E2E Gate:** Validates Given-When-Then acceptance criteria, clean code interfaces, UI/UX aesthetics, and automated Playwright browser/DOM verification before work is marked complete.
-5. **Continuous SQLite Self-Improvement:** Automatically captures correct approaches, wrong paths avoided, and lessons learned into SQLite to improve autonomous agent performance across sessions.
+2. **Kilo-Sentinel Supervisor & Circuit Breaker:** Real-time middleware enforcing Pre-flight Grounding Locks (no editing unread files), loop tripwires (identical call and edit-thrashing detection), and SQLite trajectory logging (`katl_trajectories`).
+3. **Closed-Loop Industry Benchmarking:** Subagent-driven audit of session trajectory against open-source GitHub standards (`kilo_benchmark_solution`), triggering autonomous re-planning when architectural divergence occurs.
+4. **Fuzzy Skill & Alias Resolver:** Instant, resilient skill loading with support for aliases (`brainstorming`, `diagnose`, `playwright`, `clean-code`, `tdd`).
+5. **4D Quality Assurance & Playwright E2E Gate:** Validates Given-When-Then acceptance criteria, clean code interfaces, UI/UX aesthetics, and automated Playwright browser/DOM verification before work is marked complete.
 
 ---
 
@@ -85,7 +85,7 @@ sequenceDiagram
     autonumber
     actor User
     participant Agent as Host AI Agent
-    participant MCP as Kilo-Kit MCP Server (v1.6.0)
+    participant MCP as Kilo-Kit MCP Server (v1.8.0)
     participant Disk as File System & Execution
 
     User->>Agent: "Add JWT rate-limiting middleware"
@@ -105,7 +105,7 @@ sequenceDiagram
 
     Note over Agent,Disk: 3. Execution & Verification
     Agent->>MCP: kilo_write_file, kilo_edit_file, kilo_run_command
-    MCP->>Disk: Safe Sandboxed Execution
+    MCP->>Disk: Safe Defense-in-Depth Execution
     Agent->>MCP: kilo_synthesize_skill("jwt-rate-limit")
     MCP-->>Agent: Synthesized into Library 🧬
     Agent-->>User: Completed with Verified Evidence ✅
@@ -113,31 +113,34 @@ sequenceDiagram
 
 ---
 
-## 🧰 The 18 All-in-One MCP Tools Suite
+## 🧰 The 19 All-in-One MCP Tools Suite
 
 Kilo-Kit provides a complete, self-contained execution and reasoning runtime:
 
 | Category | Tool | Description |
 | :--- | :--- | :--- |
-| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Enforces brainstorming before code mutation. |
+| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Enforces brainstorming and cognitive steps before code mutation. |
 | | `kilo_route_intent` | Routes intent to best workflow chains, task modes, and rules. |
-| | `kilo_get_skill` | Loads curated `SKILL.md` workflows with token-safe truncation. |
+| | `kilo_get_skill` | Loads curated `SKILL.md` workflows with token-safe truncation and session tracking. |
 | | `kilo_search_skills` | High-precision semantic and keyword search across 177 skills. |
 | | `kilo_memory_report` | Inspects persistent SQLite decisions, facts, and sessions. |
-| | `kilo_record_reflection` | **Self-Improvement**: Persists reflections, correct/wrong paths, and skill ratings to SQLite. |
-| | `kilo_route_report` | Reports route analytics, telemetry, and workflow metrics. |
+| | `kilo_record_reflection` | **Self-Improvement**: Persists reflections, correct/wrong paths, and lessons to SQLite. |
+| | `kilo_route_report` | Reports route telemetry, top skills, workflows, scores, and conflict penalties. |
 | | `kilo_validate_skills` | Validates entire skill catalog against the quality gate. |
 | **Safe Execution Suite** | `kilo_read_file` | Line slicing, size capping, and repository boundary enforcement. |
 | | `kilo_search_files` | Glob pattern search across directory trees. |
 | | `kilo_grep_code` | Line-by-line regex and substring search. |
-| | `kilo_write_file` | Atomic directory write with **Protocol Hard-Gate check**. |
-| | `kilo_edit_file` | Targeted search-and-replace with **AST syntax validation**. |
-| | `kilo_run_command` | Sandboxed terminal execution with **security guardrails**. |
-| **Cognitive Reasoning** | `kilo_think_step` | **Tree of Thoughts DAG**: Step-by-step reasoning & hypothesis branching. |
-| | `kilo_grill_plan` | **Adversarial Red-Teaming**: Inversion, simplification & blast radius. |
-| | `kilo_trace_root_cause` | **5-Whys Diagnostic Engine**: Recursive causal back-propagation. |
+| | `kilo_write_file` | Atomic write with **Protocol Hard-Gate**, clean-code smell audit, and secret detection. |
+| | `kilo_edit_file` | Targeted search-and-replace with **JSON syntax & bracket balancing audit**. |
+| | `kilo_run_command` | Defense-in-depth terminal execution with **security guardrails & command injection filtering**. |
+| **Cognitive Reasoning** | `kilo_think_step` | **Tree of Thoughts DAG**: Step-by-step reasoning, 3-option trade-off matrix & hypothesis branching. |
+| | `kilo_grill_plan` | **Adversarial Red-Teaming**: Inversion, simplification, mobile touch & concurrency stress testing. |
+| | `kilo_trace_root_cause` | **5-Whys Diagnostic Engine**: Recursive causal back-propagation with regression test scaffolding. |
 | | `kilo_compact_context` | **Cognitive Compactor**: 40-70% token savings while locking invariants. |
 | | `kilo_synthesize_skill` | **Self-Evolution**: Distills solved patterns into reusable skills. |
+| **Sentinel & Supervision** | `kilo_sentinel_status` | **Supervisor Telemetry**: Inspects circuit breaker state, step budget, and grounded files list. |
+| | `kilo_reset_circuit_breaker` | **Supervised Reset**: Resets tripped circuit breaker with root-cause justification. |
+| | `kilo_benchmark_solution` | **Industry Benchmark**: Audits trajectory against GitHub standards and triggers re-planning. |
 
 ---
 

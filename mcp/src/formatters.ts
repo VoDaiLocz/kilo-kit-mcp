@@ -1,5 +1,5 @@
 import type { RouteReport } from "./route-analytics.js";
-import type { MemoryReport, OrchestrationResult } from "./orchestration-types.js";
+import type { BenchmarkReport, MemoryReport, OrchestrationResult, SentinelSessionStatus } from "./orchestration-types.js";
 import type { LoadedSkill, RouteIntentResult, SearchSkillsInput, SkillRecord, ValidationSummary } from "./types.js";
 
 export function textResponse(text: string): { content: Array<{ type: "text"; text: string }> } {
@@ -415,5 +415,38 @@ export function formatCompactContext(result: any, format: "markdown" | "json"): 
 export function formatSynthesizeSkill(result: any, format: "markdown" | "json"): string {
   if (format === "json") return JSON.stringify(result, null, 2);
   return `✨ Successfully synthesized skill \`${result.skillId}\` at \`${result.skillPath}\`! (Quality Gate Passed: ${result.validationPassed ? "✅" : "❌"})`;
+}
+
+export function formatSentinelStatus(status: SentinelSessionStatus, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(status, null, 2);
+  const stateIcon = status.circuitState === "CLOSED" ? "🟢 CLOSED (Normal)" : status.circuitState === "HALF_OPEN" ? "🟡 HALF-OPEN (Testing)" : "🔴 OPEN (TRIPPED)";
+  return [
+    `# 🛡️ Kilo-Sentinel Supervisor Status`,
+    `**Session ID:** \`${status.sessionId}\``,
+    `**Circuit Breaker State:** ${stateIcon}`,
+    status.tripReason ? `**Trip Reason:** ${status.tripReason}` : "",
+    `**Step Budget:** ${status.stepsRecorded} / ${status.maxStepBudget} steps recorded`,
+    `**Consecutive Failures:** ${status.consecutiveFailures}`,
+    `**Grounded Files (${status.groundedFiles.length}):** ${status.groundedFiles.length > 0 ? status.groundedFiles.map((f) => `\`${f}\``).join(", ") : "_None yet (pre-flight required)_"}`,
+    `**Total Probes Performed:** ${status.totalProbes}`,
+  ].filter(Boolean).join("\n");
+}
+
+export function formatBenchmarkReport(report: BenchmarkReport, format: "markdown" | "json"): string {
+  if (format === "json") return JSON.stringify(report, null, 2);
+  const verdictIcon = report.verdict === "ALIGNED" ? "✅ ALIGNED" : "🔄 REPLAN_TRIGGERED";
+  return [
+    `# 📊 GitHub & Industry Benchmark Report`,
+    `**Verdict:** **${verdictIcon}**`,
+    `**Summary:** ${report.summary}`,
+    "",
+    "## 🔍 Key Comparative Findings",
+    ...report.keyDifferences.map((d) => `- ${d}`),
+    "",
+    "## 💡 Recommendations",
+    ...report.recommendations.map((r) => `- ${r}`),
+    "",
+    `**Suggested Workflow Skills:** ${report.suggestedSkills.map((s) => `\`${s}\``).join(", ")}`,
+  ].join("\n");
 }
 

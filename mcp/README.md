@@ -1,24 +1,39 @@
 # 🔌 Kilo-Kit MCP Server
 
-> **Version:** 1.4.0
-> **Mode:** Read-only Skill Registry + Validator
-> **Transport:** stdio
+> **Version:** 1.8.0  
+> **Mode:** C4 Cognitive Gate + Safe Execution Suite + Skill Registry  
+> **Transport:** stdio  
 
-The Kilo-Kit MCP server exposes the `skills/` workflow surface to MCP-capable agents. It lets agents route the current chat request to the right skill, load exactly one `SKILL.md`, and run the skill validation quality gate without granting write access.
+The Kilo-Kit MCP server exposes 22 specialized tools, dynamic resources, and prompts for AI coding agents. It enforces server-side hard-gating, cognitive Tree-of-Thoughts reasoning, 5-Whys root cause tracing, clean-code audits, and SQLite memory persistence.
 
 ---
 
-## 🎯 Capabilities
+## 🎯 22 Tools Suite
 
-| Capability | MCP Tool | Purpose |
-|------------|----------|---------|
-| C4 orchestration | `kilo_orchestrate_task` | Require the real `/brainstorming` skill before substantive work, then log/route the approved task and release the post-brainstorming workflow |
-| Skill discovery | `kilo_search_skills` | Search the skill library by task/query |
-| Intent routing | `kilo_route_intent` | Recommend skills, workflow order, rule hierarchy, and decision trail for the current chat context |
-| Skill loading | `kilo_get_skill` | Load one exact `SKILL.md` with output limits |
-| Route reporting | `kilo_route_report` | Summarize route telemetry, top skills, workflows, scores, and conflict penalties |
-| Memory reporting | `kilo_memory_report` | Inspect C4 global memory facts, decisions, and suggestions |
-| Quality gate | `kilo_validate_skills` | Run the Kilo-Kit skill validator summary |
+| Category | MCP Tool | Purpose |
+| :--- | :--- | :--- |
+| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Enforces brainstorming and cognitive steps before code mutation |
+| | `kilo_route_intent` | Recommend skills, workflow order, rule hierarchy, and decision trail for chat context |
+| | `kilo_get_skill` | Load one exact `SKILL.md` with output limits, aliases, and session delivery tracking |
+| | `kilo_search_skills` | High-precision semantic and keyword search across 177 skills |
+| | `kilo_memory_report` | Inspect persistent SQLite decisions, facts, and sessions |
+| | `kilo_record_reflection` | Persist reflections, correct/wrong paths, and lessons to SQLite |
+| | `kilo_route_report` | Summarize route telemetry, top skills, workflows, scores, and conflict penalties |
+| | `kilo_validate_skills` | Run the Kilo-Kit skill validator summary |
+| **Safe Execution Suite** | `kilo_read_file` | Line slicing, size capping, and repository boundary enforcement |
+| | `kilo_search_files` | Glob pattern search across directory trees |
+| | `kilo_grep_code` | Line-by-line regex and substring search |
+| | `kilo_write_file` | Atomic write with Protocol Hard-Gate, clean-code smell audit, and secret detection |
+| | `kilo_edit_file` | Targeted search-and-replace with JSON syntax & bracket balancing audit |
+| | `kilo_run_command` | Defense-in-depth terminal execution with security guardrails & command filtering |
+| **Cognitive Reasoning** | `kilo_think_step` | Tree of Thoughts DAG: Step-by-step reasoning, 3-option trade-off matrix & hypothesis branching |
+| | `kilo_grill_plan` | Adversarial Red-Teaming: Inversion, simplification, mobile touch & concurrency stress testing |
+| | `kilo_trace_root_cause` | 5-Whys Diagnostic Engine: Recursive causal back-propagation with regression test scaffolding |
+| | `kilo_compact_context` | Cognitive Compactor: 40-70% token savings while locking invariants |
+| | `kilo_synthesize_skill` | Self-Evolution: Distills solved patterns into reusable skills |
+| **Sentinel & Supervision** | `kilo_sentinel_status` | Supervisor Telemetry: Inspects circuit breaker state, step budget, and grounded files list |
+| | `kilo_reset_circuit_breaker` | Supervised Reset: Resets tripped circuit breaker with root-cause justification |
+| | `kilo_benchmark_solution` | Industry Benchmark: Audits trajectory against GitHub standards and triggers re-planning |
 
 Resources:
 
@@ -52,8 +67,8 @@ npm run smoke
 Expected verification:
 
 ```text
-Test Files  10 passed
-Tests       35 passed
+Test Files  14 passed (14)
+Tests       62 passed (62)
 MCP smoke check passed.
 ```
 

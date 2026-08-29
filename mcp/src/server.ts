@@ -25,6 +25,7 @@ import {
   executeWriteFile,
 } from "./execution-tools.js";
 import {
+  formatBenchmarkReport,
   formatCompactContext,
   formatEditFile,
   formatGrepCode,
@@ -37,6 +38,7 @@ import {
   formatRouteReport,
   formatRunCommand,
   formatSearchFiles,
+  formatSentinelStatus,
   formatSkills,
   formatSynthesizeSkill,
   formatThinkStep,
@@ -52,6 +54,7 @@ import { resolveInsideRepo } from "./paths.js";
 import { createInMemoryRouteAnalytics, createJsonlRouteAnalytics } from "./route-analytics.js";
 import { createSkillRegistry } from "./registry.js";
 import { routeIntent } from "./router.js";
+import { KiloSentinel } from "./sentinel.js";
 import { validateSkills } from "./validator.js";
 import type { ResponseFormat } from "./types.js";
 
@@ -85,6 +88,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     registry,
     memory: orchestrationMemory,
     audit: orchestrationAudit,
+  });
+  const sentinel = new KiloSentinel({
+    memory: orchestrationMemory,
+    maxConsecutiveIdenticalCalls: 3,
+    similarityThreshold: 0.85,
+    maxConsecutiveFailures: 3,
+    maxSessionStepBudget: 50,
   });
 
   const server = new McpServer(
@@ -393,6 +403,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         startLine: z.number().int().min(1).optional().describe("Starting line number (1-indexed)"),
         endLine: z.number().int().min(1).optional().describe("Ending line number (1-indexed)"),
         maxBytes: z.number().int().min(100).max(1024 * 1024).optional().describe("Max bytes to return"),
+        sessionId: z.string().optional().describe("Optional active session ID to register grounding evidence"),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -401,8 +412,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ filePath, startLine, endLine, maxBytes, format }) => {
+    async ({ filePath, startLine, endLine, maxBytes, sessionId, format }) => {
       const result = executeReadFile(repoRoot, { filePath, startLine, endLine, maxBytes });
+      sentinel.recordPostExecution({
+        sessionId: sessionId ?? "default",
+        toolName: "kilo_read_file",
+        args: { filePath, startLine, endLine },
+        success: true,
+        durationMs: 5,
+        summary: `Read ${result.totalLines} lines from ${result.filePath}`,
+      });
       return textResponse(formatReadFile(result, normalizeFormat(format)));
     },
   );
@@ -475,7 +494,24 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ filePath, content, overwrite, sessionId, format }) => {
+      const preFlight = sentinel.inspectPreFlight({
+        sessionId,
+        toolName: "kilo_write_file",
+        args: { filePath, overwrite },
+      });
+      if (!preFlight.allowed) {
+        return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
+      }
+      const start = Date.now();
       const result = executeWriteFile(repoRoot, orchestrator, { filePath, content, overwrite, sessionId });
+      sentinel.recordPostExecution({
+        sessionId,
+        toolName: "kilo_write_file",
+        args: { filePath, overwrite },
+        success: true,
+        durationMs: Date.now() - start,
+        summary: `Action: ${result.action} on ${result.filePath}`,
+      });
       return textResponse(formatWriteFile(result, normalizeFormat(format)));
     },
   );
@@ -501,12 +537,29 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ filePath, targetContent, replacementContent, allowMultiple, sessionId, format }) => {
+      const preFlight = sentinel.inspectPreFlight({
+        sessionId,
+        toolName: "kilo_edit_file",
+        args: { filePath, targetContent, replacementContent },
+      });
+      if (!preFlight.allowed) {
+        return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
+      }
+      const start = Date.now();
       const result = executeEditFile(repoRoot, orchestrator, {
         filePath,
         targetContent,
         replacementContent,
         allowMultiple,
         sessionId,
+      });
+      sentinel.recordPostExecution({
+        sessionId,
+        toolName: "kilo_edit_file",
+        args: { filePath, targetContent },
+        success: result.replacements > 0,
+        durationMs: Date.now() - start,
+        summary: `Edit applied (${result.replacements} replacements) on ${result.filePath}`,
       });
       return textResponse(formatEditFile(result, normalizeFormat(format)));
     },
@@ -532,7 +585,25 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ command, cwd, timeoutMs, sessionId, format }) => {
+      const preFlight = sentinel.inspectPreFlight({
+        sessionId,
+        toolName: "kilo_run_command",
+        args: { command, cwd },
+      });
+      if (!preFlight.allowed) {
+        return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
+      }
+      const start = Date.now();
       const result = await executeRunCommand(repoRoot, orchestrator, { command, cwd, timeoutMs, sessionId });
+      sentinel.recordPostExecution({
+        sessionId,
+        toolName: "kilo_run_command",
+        args: { command, cwd },
+        success: result.exitCode === 0,
+        exitCode: result.exitCode,
+        durationMs: Date.now() - start,
+        summary: result.exitCode === 0 ? "Command completed successfully" : `Command failed with code ${result.exitCode}`,
+      });
       return textResponse(formatRunCommand(result, normalizeFormat(format)));
     },
   );
@@ -714,6 +785,75 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         keywords,
       });
       return textResponse(formatSynthesizeSkill(result, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_sentinel_status",
+    {
+      title: "Kilo-Sentinel Supervisor Status",
+      description:
+        "Inspect real-time Sentinel supervisor telemetry: Circuit breaker state, step budget, failure streaks, and grounded files list.",
+      inputSchema: {
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ sessionId, format }) => {
+      const status = sentinel.getStatus(sessionId);
+      return textResponse(formatSentinelStatus(status, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_reset_circuit_breaker",
+    {
+      title: "Reset Circuit Breaker (Supervised)",
+      description:
+        "Reset an open Circuit Breaker with justification and root-cause evidence. Transitions breaker to HALF_OPEN.",
+      inputSchema: {
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID"),
+        justification: z.string().min(10).describe("Detailed justification and root cause explanation for reset"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+    },
+    async ({ sessionId, justification, format }) => {
+      const status = sentinel.resetCircuit(sessionId, justification);
+      return textResponse(formatSentinelStatus(status, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_benchmark_solution",
+    {
+      title: "Benchmark Solution Against Industry & GitHub",
+      description:
+        "Audit the current session trajectory against open-source GitHub standards and industry best practices. Returns alignment score or triggers re-planning.",
+      inputSchema: {
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID"),
+        proposedApproach: z.string().min(10).describe("The approach, architecture, or code produced in this session"),
+        industryBestPractice: z.string().min(10).describe("Standard pattern, library, or algorithm used by top GitHub repos"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+      },
+    },
+    async ({ sessionId, proposedApproach, industryBestPractice, format }) => {
+      const report = sentinel.benchmarkSolution(sessionId, proposedApproach, industryBestPractice);
+      return textResponse(formatBenchmarkReport(report, normalizeFormat(format)));
     },
   );
 
