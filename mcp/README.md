@@ -74,29 +74,21 @@ MCP smoke check passed.
 
 ---
 
-## 🚀 Industry-Standard Team Rollout (Configuration as Code)
+## 🚀 Installation & Team Rollout
 
-Kilo-Kit follows the industry standard for AI Agent configuration (similar to Aider, Cline, and Claude Code). We strictly separate **Global Tooling** (installed on each developer's machine) from **Project Rules** (committed to your Git repository).
-
-### Step 1: Global Tooling (For all Developers)
-Every developer on the team runs this command **once** to install the Kilo-Kit MCP Server globally into their IDEs (Cursor, Claude Code, Windsurf, Antigravity):
-
+**1. Install Global Tooling (All Developers):**
 ```bash
 npm install -g @vodailoc/kilo-kit-mcp
 kilo-kit-init global
 ```
-*(This sets up the `mcpServers` configurations and global Git aliases `git kilo-init` / `git kilo-clone` on the host machine).*
 
-### Step 2: Project Rules (For Tech Leads)
-When setting up a new repository, the Tech Lead generates the C4 Protocol rules for the project:
-
+**2. Configure Project Rules (Tech Leads):**
 ```bash
 kilo-kit-init init --client all
 ```
-This generates `CLAUDE.md`, `AGENTS.md`, and `GEMINI.md`. **You must commit these files to your Git repository.** 
+*Commit the generated `CLAUDE.md` & `AGENTS.md` to your Git repository.*
 
-### 🔄 The Zero-Config Workflow
-When a new developer joins the team and clones the repository, **they do not need to configure anything**. Their globally installed Agent (from Step 1) will automatically read the committed `CLAUDE.md` (from Step 2), binding the local project securely to the Kilo-Kit cognitive engine.
+Developers cloning the repository will automatically inherit the Kilo-Kit cognitive rules.
 
 Route telemetry is in-memory by default. To persist route decisions between server runs, set:
 
