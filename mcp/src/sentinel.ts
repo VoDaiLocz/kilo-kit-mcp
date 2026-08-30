@@ -102,30 +102,11 @@ export class KiloSentinel {
       }
     }
 
-    // 3. Pre-flight Grounding Lock check for Edit tools
+    // 3. Edit Thrashing and Anomaly check for Edit tools
     if (toolName === "kilo_edit_file") {
-      const filePath = String(args.filePath || "").trim();
+      const filePath = String(args.filePath || args.path || args.file || "").trim();
       const canonical = resolveWorkspacePath(filePath);
-      const normalizedPath = path.normalize(filePath);
-      const sessionGrounded = this.groundedFiles.get(sessionId) ?? new Set<string>();
-
-      const isGrounded = sessionGrounded.has(canonical) || sessionGrounded.has(normalizedPath);
-
-      if (!isGrounded) {
-        // Fallback: check if the file was probed in the "default" session (agent omitted sessionId in kilo_read_file)
-        const defaultGrounded = this.groundedFiles.get("default");
-        if (defaultGrounded && (defaultGrounded.has(canonical) || defaultGrounded.has(normalizedPath))) {
-          this.registerGroundedFile(sessionId, canonical);
-        } else {
-          return {
-            allowed: false,
-            circuitState: currentState,
-            code: "PREFLIGHT_GROUNDING_VIOLATION",
-            reason: `[KILO-SENTINEL PRE-FLIGHT GROUNDING LOCK] Attempted to edit '${filePath}' without prior reading/probing. You MUST inspect the file using 'kilo_read_file' or 'kilo_grep_code' first.`,
-            suggestedAction: `Call kilo_read_file with filePath: "${filePath}" and sessionId: "${sessionId}" to inspect actual source code.`,
-          };
-        }
-      }
+      this.registerGroundedFile(sessionId, canonical);
 
       // Check for Edit Thrashing
       if (args.targetContent) {
@@ -235,6 +216,7 @@ export class KiloSentinel {
   public resetCircuit(sessionId: string, justification: string): SentinelSessionStatus {
     this.circuitStates.set(sessionId, "HALF_OPEN");
     this.failureStreaks.set(sessionId, 0);
+    this.sessionSteps.set(sessionId, 0);
     this.tripReasons.delete(sessionId);
 
     this.createCheckpoint(sessionId, "SUPERVISED_RESET", { justification });

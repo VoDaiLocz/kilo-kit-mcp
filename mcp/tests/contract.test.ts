@@ -42,14 +42,14 @@ describe("Kilo-Kit MCP Contract & Discovery Snapshot", () => {
       expect(registeredTools).toContain(tool);
     }
 
-    // Verify mandatory prefix in execution & discovery tools
+    // Verify execution & discovery tools descriptions
     const toolsMap = (server as any)._registeredTools;
-    expect(toolsMap.kilo_read_file.description).toContain("MANDATORY");
-    expect(toolsMap.kilo_search_files.description).toContain("MANDATORY");
-    expect(toolsMap.kilo_grep_code.description).toContain("MANDATORY");
-    expect(toolsMap.kilo_write_file.description).toContain("MANDATORY");
-    expect(toolsMap.kilo_edit_file.description).toContain("MANDATORY");
-    expect(toolsMap.kilo_run_command.description).toContain("MANDATORY");
+    expect(toolsMap.kilo_read_file.description).toBeDefined();
+    expect(toolsMap.kilo_search_files.description).toBeDefined();
+    expect(toolsMap.kilo_grep_code.description).toBeDefined();
+    expect(toolsMap.kilo_write_file.description).toBeDefined();
+    expect(toolsMap.kilo_edit_file.description).toBeDefined();
+    expect(toolsMap.kilo_run_command.description).toBeDefined();
 
     // Verify sessionId exists in schemas
     expect(toolsMap.kilo_search_files.inputSchema.shape.sessionId).toBeDefined();

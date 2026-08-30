@@ -137,7 +137,7 @@ export function executeReadFile(repoRoot: string, input: ReadFileInput): ReadFil
     .map((line, idx) => `${startLine + idx}: ${line}`)
     .join("\n");
 
-  const maxBytes = input.maxBytes ?? 32 * 1024;
+  const maxBytes = input.maxBytes ?? 512 * 1024;
   let truncated = false;
   if (Buffer.byteLength(content, "utf8") > maxBytes) {
     content = content.slice(0, maxBytes);
@@ -168,36 +168,34 @@ export function executeWriteFile(
   const exists = existsSync(resolved);
 
   if (exists && !input.overwrite) {
-    throw new Error(`File already exists: ${input.filePath}. Specify overwrite=true to overwrite.`);
+    throw new Error(`File already exists: ${input.filePath}. Set overwrite=true to overwrite.`);
   }
 
+  const parentDir = path.dirname(resolved);
+  if (!existsSync(parentDir)) {
+    mkdirSync(parentDir, { recursive: true });
+  }
+
+  writeFileSync(resolved, input.content, "utf8");
+  const bytesWritten = Buffer.byteLength(input.content, "utf8");
+
+  // Clean-code and security audit hints
   const cleanCodeAudits: string[] = [];
   const securityAudits: string[] = [];
 
-  // Clean-code skill audit
-  if (/\bdebugger;/.test(input.content)) {
-    cleanCodeAudits.push("Contains 'debugger;' statement. Remove before committing.");
+  if (/console\.log\(/g.test(input.content)) {
+    cleanCodeAudits.push("Contains console.log statements - consider using a structured logger or removing debugging logs.");
   }
-  if (/catch\s*\([a-zA-Z0-9_]*\)\s*\{\s*\}/.test(input.content)) {
-    cleanCodeAudits.push("Contains empty catch block. Handle or log the error properly.");
+  if (/\bany\b/g.test(input.content) && (input.filePath.endsWith(".ts") || input.filePath.endsWith(".tsx"))) {
+    cleanCodeAudits.push("Contains explicit 'any' types - prefer strict typing or unknown.");
   }
-  if (!input.filePath.includes("test") && !input.filePath.includes("scratch") && !input.filePath.includes("tools")) {
-    if (/\bconsole\.log\(/.test(input.content)) {
-      cleanCodeAudits.push("Contains 'console.log' in production file. Prefer structured logging.");
-    }
+  if (/(?:password|secret|api[_-]?key|token)\s*[:=]\s*["'][^"']+["']/i.test(input.content)) {
+    securityAudits.push("Potential hardcoded secret or token detected.");
   }
-
-  // Security skill audit
-  if (/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"][A-Za-z0-9_\-\.]{24,}['"]/i.test(input.content)) {
-    securityAudits.push("Potential hardcoded secret or API token detected. Use environment variables.");
-  }
-
-  mkdirSync(path.dirname(resolved), { recursive: true });
-  writeFileSync(resolved, input.content, "utf8");
 
   return {
     filePath: resolved,
-    bytesWritten: Buffer.byteLength(input.content, "utf8"),
+    bytesWritten,
     action: exists ? "overwritten" : "created",
     ...(cleanCodeAudits.length > 0 ? { cleanCodeAudits } : {}),
     ...(securityAudits.length > 0 ? { securityAudits } : {}),
@@ -219,72 +217,60 @@ export function executeEditFile(
     throw new Error(`File not found: ${input.filePath}`);
   }
 
-  let originalContent = readFileSync(resolved, "utf8");
-  let target = input.targetContent;
-  let replacement = input.replacementContent;
+  const current = readFileSync(resolved, "utf8");
 
-  let targetFound = originalContent.includes(target);
-
-  // Fallback: Line-ending normalization (CRLF vs LF)
-  if (!targetFound) {
-    const normOriginal = originalContent.replace(/\r\n/g, "\n");
-    const normTarget = target.replace(/\r\n/g, "\n");
-    if (normOriginal.includes(normTarget)) {
-      originalContent = normOriginal;
-      target = normTarget;
-      replacement = replacement.replace(/\r\n/g, "\n");
-      targetFound = true;
-    }
-  }
-
-  if (!targetFound) {
-    throw new Error(`targetContent not found in ${input.filePath}. Ensure exact whitespace and line match.`);
-  }
-
-  const occurrences = originalContent.split(target).length - 1;
-  if (occurrences > 1 && !input.allowMultiple) {
+  if (!current.includes(input.targetContent)) {
     throw new Error(
-      `targetContent matched ${occurrences} times in ${input.filePath}. Set allowMultiple=true or provide a more specific chunk.`,
+      `Target content not found in ${input.filePath}. Verify exact characters, whitespace, and line endings.`,
     );
   }
 
-  const newContent = input.allowMultiple
-    ? originalContent.replaceAll(target, replacement)
-    : originalContent.replace(target, replacement);
+  const occurrences = current.split(input.targetContent).length - 1;
+  if (occurrences > 1 && !input.allowMultiple) {
+    throw new Error(
+      `Target content matched ${occurrences} times in ${input.filePath}. Specify more context or set allowMultiple=true.`,
+    );
+  }
 
-  // Syntax validation & bracket balance
+  const updated = input.allowMultiple
+    ? current.replaceAll(input.targetContent, input.replacementContent)
+    : current.replace(input.targetContent, input.replacementContent);
+
+  writeFileSync(resolved, updated, "utf8");
+
   let syntaxStatus: EditFileResult["syntaxStatus"] = "valid";
   let bracketBalance: EditFileResult["bracketBalance"] = "balanced";
-  let message = `Successfully replaced ${occurrences} occurrence(s) in ${input.filePath}.`;
 
-  if (resolved.endsWith(".json")) {
+  if (input.filePath.endsWith(".json")) {
     try {
-      JSON.parse(newContent);
-    } catch (error) {
+      JSON.parse(updated);
+      syntaxStatus = "valid";
+    } catch {
       syntaxStatus = "warning";
-      message += ` (Warning: JSON syntax check failed: ${(error as Error).message})`;
     }
-  } else if (/\.(ts|tsx|js|jsx)$/.test(resolved)) {
-    const openBraces = (newContent.match(/\{/g) || []).length;
-    const closeBraces = (newContent.match(/\}/g) || []).length;
-    const openParens = (newContent.match(/\(/g) || []).length;
-    const closeParens = (newContent.match(/\)/g) || []).length;
+  } else if (/\.[jt]sx?$/.test(input.filePath)) {
+    const openBraces = (updated.match(/\{/g) || []).length;
+    const closeBraces = (updated.match(/\}/g) || []).length;
+    const openParens = (updated.match(/\(/g) || []).length;
+    const closeParens = (updated.match(/\)/g) || []).length;
 
     if (openBraces !== closeBraces || openParens !== closeParens) {
       bracketBalance = "unbalanced";
       syntaxStatus = "warning";
-      message += ` (Warning: Unbalanced braces/parentheses detected: braces ${openBraces}/${closeBraces}, parens ${openParens}/${closeParens})`;
     }
   }
 
-  writeFileSync(resolved, newContent, "utf8");
+  let message = `Successfully replaced ${occurrences} occurrence(s) in ${input.filePath}.`;
+  if (syntaxStatus === "warning" && bracketBalance === "unbalanced") {
+    message += ` (Warning: Unbalanced braces/parentheses detected)`;
+  }
 
   return {
     filePath: resolved,
     replacements: occurrences,
     syntaxStatus,
     message,
-    bracketBalance,
+    ...(bracketBalance ? { bracketBalance } : {}),
   };
 }
 
@@ -443,7 +429,9 @@ export async function executeRunCommand(
 }
 
 function globToRegex(glob: string): RegExp {
-  const escaped = glob
+  const isWildcard = glob.includes("*") || glob.includes("?");
+  const effectiveGlob = isWildcard ? glob : `*${glob}*`;
+  const escaped = effectiveGlob
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*/g, ".*")
     .replace(/\?/g, ".");

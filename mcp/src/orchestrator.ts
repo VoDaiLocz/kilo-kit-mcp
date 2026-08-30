@@ -385,9 +385,11 @@ function buildNextAction(
     const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
     const toolList = missing.map((t) => `\`${t}\``).join(" and ");
     return [
-      `[COGNITIVE REASONING GATE] Brainstorming approved, but cognitive reasoning is mandatory before writing code or running commands.`,
-      `You MUST call ${toolList} with sessionId "${session.sessionId}".`,
-      `CRITICAL RULE: Do NOT use native tools (ListDir, Search, Find, grep_search, view_file, Edit, Bash). Use ONLY Kilo-Kit tools (kilo_read_file, kilo_search_files, kilo_grep_code, kilo_write_file, kilo_edit_file, kilo_run_command), and ALWAYS pass sessionId: "${session.sessionId}".`,
+      `[GATE 2: COGNITIVE REASONING GATE]`,
+      `Brainstorming approved. You MUST execute cognitive reasoning before modifying code:`,
+      `- Call ${toolList} with sessionId: "${session.sessionId}".`,
+      `- If you inspected >4 files, call \`kilo_compact_context\` with sessionId: "${session.sessionId}" to lock architectural invariants [INVARIANT].`,
+      `- For complex features, call \`kilo_benchmark_solution\` with sessionId: "${session.sessionId}" to audit against industry standards.`,
     ].join("\n");
   }
   if (state === "ready") {
@@ -395,15 +397,19 @@ function buildNextAction(
     if (workflow.length > 0) {
       const order = workflow.map((step) => step.skill.id).join(" -> ");
       const stepLines = workflow
-        .map((step, idx) => `${idx + 1}. [${step.role}] ${step.skill.id}: ${step.reason}`)
+        .map((step, idx) => `   ${idx + 1}. [${step.role}] \`${step.skill.id}\`: ${step.reason}`)
         .join("\n");
       return [
-        `[ALL GATES PASSED - READY TO EXECUTE]`,
-        `Load skills in workflow order: ${order}. Start with ${workflow[0]?.skill.id} using kilo_get_skill.`,
-        `Execute the workflow steps in order:`,
+        `[GATE 3 -> GATE 4 -> GATE 5: READY TO EXECUTE]`,
+        `1. GATE 3 (SKILL DELIVERY & SUPERVISOR CHECK):`,
+        `   -> Load workflow skill(s) before coding: Call \`kilo_get_skill\` with skill "${workflow[0]?.skill.id}" and sessionId "${session.sessionId}".`,
+        `   -> (Optional) Call \`kilo_sentinel_status\` with sessionId "${session.sessionId}" to inspect supervisor telemetry.`,
+        `2. GATE 4 (SURGICAL IMPLEMENTATION):`,
+        `   Execute the workflow steps with defense-in-depth:`,
         stepLines,
-        `CRITICAL RULE: Do NOT use native tools (ListDir, Search, Find, grep_search, view_file, Edit, Bash). Use ONLY Kilo-Kit tools (kilo_read_file, kilo_search_files, kilo_grep_code, kilo_write_file, kilo_edit_file, kilo_run_command) with sessionId: "${session.sessionId}".`,
-        `Satisfy the verification gate before claiming completion.`,
+        `3. GATE 5 (4D QUALITY & SELF-IMPROVEMENT):`,
+        `   -> Verify against requirements and run test commands.`,
+        `   -> Call \`kilo_record_reflection\` with sessionId "${session.sessionId}" to record lessons learned into SQLite memory.`,
       ].join("\n");
     }
   }

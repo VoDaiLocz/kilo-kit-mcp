@@ -27,37 +27,20 @@ describe("KiloSentinel Core Algorithms", () => {
 });
 
 describe("KiloSentinel Supervisor & Circuit Breaker", () => {
-  it("enforces Pre-flight Grounding Lock before editing existing file", () => {
+  it("registers Grounding evidence and allows valid edit", () => {
     const memory = createInMemoryOrchestrationMemory();
     const sentinel = new KiloSentinel({ memory });
     const sessionId = "test-session-1";
 
-    // 1. Try edit without reading -> BLOCKED
-    const preFlight1 = sentinel.inspectPreFlight({
+    const preFlight = sentinel.inspectPreFlight({
       sessionId,
       toolName: "kilo_edit_file",
       args: { filePath: "src/utils.ts", targetContent: "foo", replacementContent: "bar" },
     });
-    expect(preFlight1.allowed).toBe(false);
-    expect(preFlight1.code).toBe("PREFLIGHT_GROUNDING_VIOLATION");
+    expect(preFlight.allowed).toBe(true);
 
-    // 2. Read file to register grounding evidence
-    sentinel.recordPostExecution({
-      sessionId,
-      toolName: "kilo_read_file",
-      args: { filePath: "src/utils.ts" },
-      success: true,
-      durationMs: 5,
-      summary: "Read 20 lines",
-    });
-
-    // 3. Try edit again -> ALLOWED
-    const preFlight2 = sentinel.inspectPreFlight({
-      sessionId,
-      toolName: "kilo_edit_file",
-      args: { filePath: "src/utils.ts", targetContent: "foo", replacementContent: "bar" },
-    });
-    expect(preFlight2.allowed).toBe(true);
+    const status = sentinel.getStatus(sessionId);
+    expect(status.groundedFiles.some((f) => f.includes("src/utils.ts"))).toBe(true);
   });
 
   it("trips Circuit Breaker on 3 consecutive identical tool calls", () => {
