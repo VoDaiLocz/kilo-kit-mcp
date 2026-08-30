@@ -69,6 +69,11 @@ export interface CreateKiloKitServerOptions {
 
 export async function createKiloKitServer(options: CreateKiloKitServerOptions = {}): Promise<McpServer> {
   const repoRoot = path.resolve(options.repoRoot ?? process.env.KILO_KIT_REPO_ROOT ?? DEFAULT_REPO_ROOT);
+  const workspaceRoot = process.env.KILO_KIT_WORKSPACE_ROOT
+    ? path.resolve(process.env.KILO_KIT_WORKSPACE_ROOT)
+    : options.repoRoot
+      ? path.resolve(options.repoRoot)
+      : process.cwd();
   const registry = await createSkillRegistry({ repoRoot });
   const routeAnalytics =
     process.env.KILO_KIT_WRITE_DECISIONS === "true"
@@ -104,7 +109,10 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     {
       instructions:
-        "CRITICAL KILO-KIT C4 PROTOCOL:\n1. You MUST call kilo_orchestrate_task as your FIRST action for any request involving code, debugging, bug fixes, UI, features, refactoring, or project work.\n2. Do NOT use native terminal or edit tools (Bash/Edit/Read). You MUST use kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command for all file I/O and command executions.\n3. Always pass the sessionId obtained from kilo_orchestrate_task to all subsequent tool calls.",
+        "CRITICAL KILO-KIT C4 PROTOCOL:\n" +
+        "1. MANDATORY FIRST ACTION: You MUST call kilo_orchestrate_task as your FIRST action for any request involving code, debugging, bug fixes, UI, features, refactoring, or project work.\n" +
+        "2. EXCLUSIVE TOOL USAGE (NO NATIVE LIMBS): Do NOT use native terminal, search, file, or edit tools (Bash, Terminal, Read, Edit, Write, ListDir, Search, Find, grep_search, view_file, run_command, replace_file_content). You MUST use kilo_read_file, kilo_search_files, kilo_grep_code, kilo_write_file, kilo_edit_file, and kilo_run_command for ALL workspace discovery, file I/O, editing, and command executions.\n" +
+        "3. SESSION CONTINUITY: Always pass the sessionId obtained from kilo_orchestrate_task to all subsequent tool calls to maintain pre-flight grounding and satisfy Kilo-Sentinel supervision.",
     },
   );
 
@@ -397,7 +405,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Read File (Kilo-Kit Safe Workspace I/O)",
       description:
-        "Read file content safely across workspace boundaries, supporting line ranges and output size capping. Registers pre-flight grounding for subsequent edits.",
+        "MANDATORY: Read file content safely across workspace boundaries (supports line ranges and byte capping). Use this INSTEAD OF native Read/view_file tools. Registers pre-flight grounding required for subsequent edits.",
       inputSchema: {
         filePath: z.string().min(1).describe("Path to file (supports relative path, absolute path, and '~')"),
         startLine: z.number().int().min(1).optional().describe("Starting line number (1-indexed)"),
@@ -413,7 +421,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ filePath, startLine, endLine, maxBytes, sessionId, format }) => {
-      const result = executeReadFile(repoRoot, { filePath, startLine, endLine, maxBytes });
+      const result = executeReadFile(workspaceRoot, { filePath, startLine, endLine, maxBytes });
       sentinel.recordPostExecution({
         sessionId: sessionId ?? "default",
         toolName: "kilo_read_file",
@@ -430,11 +438,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     "kilo_search_files",
     {
       title: "Search Files (Kilo-Kit)",
-      description: "Search for files matching a glob pattern across the repository.",
+      description:
+        "MANDATORY: Search for files matching a glob pattern across the workspace. Use this INSTEAD OF native find/search/glob/ListDir tools for exploratory file discovery. Pass sessionId to record pre-flight grounding.",
       inputSchema: {
         pattern: z.string().min(1).describe("Glob pattern (e.g. '*.ts', '**/*.json', 'src/**/*.tsx')"),
-        rootDir: z.string().optional().describe("Subdirectory to limit search"),
+        rootDir: z.string().optional().describe("Subdirectory or workspace path to limit search"),
         maxResults: z.number().int().min(1).max(200).optional().describe("Maximum file matches"),
+        sessionId: z.string().optional().describe("Active session ID from kilo_orchestrate_task to register pre-flight grounding."),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -443,8 +453,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ pattern, rootDir, maxResults, format }) => {
-      const result = executeSearchFiles(repoRoot, { pattern, rootDir, maxResults });
+    async ({ pattern, rootDir, maxResults, sessionId, format }) => {
+      const result = executeSearchFiles(workspaceRoot, { pattern, rootDir, maxResults });
+      sentinel.recordPostExecution({
+        sessionId: sessionId ?? "default",
+        toolName: "kilo_search_files",
+        args: { pattern, rootDir },
+        success: true,
+        durationMs: 5,
+        summary: `Found ${result.totalMatches} file(s) matching ${pattern}`,
+      });
       return textResponse(formatSearchFiles(result, normalizeFormat(format)));
     },
   );
@@ -453,13 +471,15 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     "kilo_grep_code",
     {
       title: "Grep Code (Kilo-Kit)",
-      description: "Search code snippets and matching lines across repository files.",
+      description:
+        "MANDATORY: Search code snippets and matching lines across workspace files. Use this INSTEAD OF native grep/search tools for code pattern discovery. Pass sessionId to record pre-flight grounding.",
       inputSchema: {
         query: z.string().min(1).describe("Search string or regex pattern"),
-        rootDir: z.string().optional().describe("Subdirectory to limit search"),
+        rootDir: z.string().optional().describe("Subdirectory or workspace path to limit search"),
         isRegex: z.boolean().optional().describe("Whether query is regex"),
         caseSensitive: z.boolean().optional().describe("Case-sensitive match"),
         maxResults: z.number().int().min(1).max(200).optional().describe("Max matches to return"),
+        sessionId: z.string().optional().describe("Active session ID from kilo_orchestrate_task to register pre-flight grounding."),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -468,8 +488,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ query, rootDir, isRegex, caseSensitive, maxResults, format }) => {
-      const result = executeGrepCode(repoRoot, { query, rootDir, isRegex, caseSensitive, maxResults });
+    async ({ query, rootDir, isRegex, caseSensitive, maxResults, sessionId, format }) => {
+      const result = executeGrepCode(workspaceRoot, { query, rootDir, isRegex, caseSensitive, maxResults });
+      sentinel.recordPostExecution({
+        sessionId: sessionId ?? "default",
+        toolName: "kilo_grep_code",
+        args: { query, rootDir },
+        success: true,
+        durationMs: 5,
+        summary: `Found ${result.totalMatches} match(es) for ${query}`,
+      });
       return textResponse(formatGrepCode(result, normalizeFormat(format)));
     },
   );
@@ -479,7 +507,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Write File (Kilo-Kit Hard-Gated)",
       description:
-        "Create a new file or overwrite an existing file. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+        "MANDATORY: Create a new file or overwrite an existing file. Use this INSTEAD OF native write tools. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
       inputSchema: {
         filePath: z.string().min(1).describe("Relative path to file"),
         content: z.string().describe("Complete file content to write"),
@@ -503,7 +531,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
       }
       const start = Date.now();
-      const result = executeWriteFile(repoRoot, orchestrator, { filePath, content, overwrite, sessionId });
+      const result = executeWriteFile(workspaceRoot, orchestrator, { filePath, content, overwrite, sessionId });
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_write_file",
@@ -521,7 +549,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Edit File (Kilo-Kit Hard-Gated)",
       description:
-        "Perform exact targeted search-and-replace edit on an existing file with AST check. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+        "MANDATORY: Perform exact targeted search-and-replace edit on an existing file with AST check. Use this INSTEAD OF native Edit/replace tools. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
       inputSchema: {
         filePath: z.string().min(1).describe("Relative path to file"),
         targetContent: z.string().min(1).describe("Exact content substring to replace"),
@@ -546,7 +574,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
       }
       const start = Date.now();
-      const result = executeEditFile(repoRoot, orchestrator, {
+      const result = executeEditFile(workspaceRoot, orchestrator, {
         filePath,
         targetContent,
         replacementContent,
@@ -570,7 +598,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     {
       title: "Run Command (Kilo-Kit Hard-Gated)",
       description:
-        "Execute a terminal command with security guardrails and timeout. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
+        "MANDATORY: Execute a terminal command with security guardrails and timeout. Use this INSTEAD OF native Bash/terminal tools. PROTOCOL HARD-GATE: Requires valid sessionId in 'ready' state.",
       inputSchema: {
         command: z.string().min(1).describe("Terminal command to run"),
         cwd: z.string().optional().describe("Working directory relative to repoRoot"),
@@ -594,7 +622,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         return textResponse(`[KILO-SENTINEL HARD-GATE VIOLATION] ${preFlight.reason}\nSuggested action: ${preFlight.suggestedAction}`);
       }
       const start = Date.now();
-      const result = await executeRunCommand(repoRoot, orchestrator, { command, cwd, timeoutMs, sessionId });
+      const result = await executeRunCommand(workspaceRoot, orchestrator, { command, cwd, timeoutMs, sessionId });
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_run_command",

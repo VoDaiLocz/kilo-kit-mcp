@@ -74,6 +74,7 @@ export interface SearchFilesInput {
   pattern: string;
   rootDir?: string | undefined;
   maxResults?: number | undefined;
+  sessionId?: string | undefined;
 }
 
 export interface SearchFilesResult {
@@ -88,6 +89,7 @@ export interface GrepCodeInput {
   isRegex?: boolean | undefined;
   caseSensitive?: boolean | undefined;
   maxResults?: number | undefined;
+  sessionId?: string | undefined;
 }
 
 export interface GrepMatch {

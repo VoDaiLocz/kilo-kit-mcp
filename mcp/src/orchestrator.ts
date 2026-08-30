@@ -387,7 +387,7 @@ function buildNextAction(
     return [
       `[COGNITIVE REASONING GATE] Brainstorming approved, but cognitive reasoning is mandatory before writing code or running commands.`,
       `You MUST call ${toolList} with sessionId "${session.sessionId}".`,
-      `CRITICAL RULE: Do NOT use native Edit/Bash tools. Use only kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command, and ALWAYS pass sessionId: "${session.sessionId}".`,
+      `CRITICAL RULE: Do NOT use native tools (ListDir, Search, Find, grep_search, view_file, Edit, Bash). Use ONLY Kilo-Kit tools (kilo_read_file, kilo_search_files, kilo_grep_code, kilo_write_file, kilo_edit_file, kilo_run_command), and ALWAYS pass sessionId: "${session.sessionId}".`,
     ].join("\n");
   }
   if (state === "ready") {
@@ -402,7 +402,7 @@ function buildNextAction(
         `Load skills in workflow order: ${order}. Start with ${workflow[0]?.skill.id} using kilo_get_skill.`,
         `Execute the workflow steps in order:`,
         stepLines,
-        `CRITICAL RULE: Do NOT use native Edit/Bash tools. Use only kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command with sessionId: "${session.sessionId}".`,
+        `CRITICAL RULE: Do NOT use native tools (ListDir, Search, Find, grep_search, view_file, Edit, Bash). Use ONLY Kilo-Kit tools (kilo_read_file, kilo_search_files, kilo_grep_code, kilo_write_file, kilo_edit_file, kilo_run_command) with sessionId: "${session.sessionId}".`,
         `Satisfy the verification gate before claiming completion.`,
       ].join("\n");
     }
