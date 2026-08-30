@@ -4,7 +4,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import type { KiloOrchestrator } from "./orchestrator.js";
-import { resolveInsideRepo } from "./paths.js";
+import { resolveWorkspacePath } from "./paths.js";
 
 const execAsync = promisify(exec);
 
@@ -118,7 +118,7 @@ export interface RunCommandResult {
 }
 
 export function executeReadFile(repoRoot: string, input: ReadFileInput): ReadFileResult {
-  const resolved = resolveInsideRepo(repoRoot, input.filePath);
+  const resolved = resolveWorkspacePath(input.filePath, repoRoot);
   if (!existsSync(resolved)) {
     throw new Error(`File not found: ${input.filePath}`);
   }
@@ -143,7 +143,7 @@ export function executeReadFile(repoRoot: string, input: ReadFileInput): ReadFil
   }
 
   return {
-    filePath: path.relative(repoRoot, resolved) || resolved,
+    filePath: resolved,
     totalLines,
     startLine,
     endLine,
@@ -162,7 +162,7 @@ export function executeWriteFile(
     throw new Error(`[KILO-KIT HARD-GATE VIOLATION] ${gateCheck.reason}`);
   }
 
-  const resolved = resolveInsideRepo(repoRoot, input.filePath);
+  const resolved = resolveWorkspacePath(input.filePath, repoRoot);
   const exists = existsSync(resolved);
 
   if (exists && !input.overwrite) {
@@ -194,7 +194,7 @@ export function executeWriteFile(
   writeFileSync(resolved, input.content, "utf8");
 
   return {
-    filePath: path.relative(repoRoot, resolved) || resolved,
+    filePath: resolved,
     bytesWritten: Buffer.byteLength(input.content, "utf8"),
     action: exists ? "overwritten" : "created",
     ...(cleanCodeAudits.length > 0 ? { cleanCodeAudits } : {}),
@@ -212,17 +212,34 @@ export function executeEditFile(
     throw new Error(`[KILO-KIT HARD-GATE VIOLATION] ${gateCheck.reason}`);
   }
 
-  const resolved = resolveInsideRepo(repoRoot, input.filePath);
+  const resolved = resolveWorkspacePath(input.filePath, repoRoot);
   if (!existsSync(resolved)) {
     throw new Error(`File not found: ${input.filePath}`);
   }
 
-  const originalContent = readFileSync(resolved, "utf8");
-  if (!originalContent.includes(input.targetContent)) {
+  let originalContent = readFileSync(resolved, "utf8");
+  let target = input.targetContent;
+  let replacement = input.replacementContent;
+
+  let targetFound = originalContent.includes(target);
+
+  // Fallback: Line-ending normalization (CRLF vs LF)
+  if (!targetFound) {
+    const normOriginal = originalContent.replace(/\r\n/g, "\n");
+    const normTarget = target.replace(/\r\n/g, "\n");
+    if (normOriginal.includes(normTarget)) {
+      originalContent = normOriginal;
+      target = normTarget;
+      replacement = replacement.replace(/\r\n/g, "\n");
+      targetFound = true;
+    }
+  }
+
+  if (!targetFound) {
     throw new Error(`targetContent not found in ${input.filePath}. Ensure exact whitespace and line match.`);
   }
 
-  const occurrences = originalContent.split(input.targetContent).length - 1;
+  const occurrences = originalContent.split(target).length - 1;
   if (occurrences > 1 && !input.allowMultiple) {
     throw new Error(
       `targetContent matched ${occurrences} times in ${input.filePath}. Set allowMultiple=true or provide a more specific chunk.`,
@@ -230,8 +247,8 @@ export function executeEditFile(
   }
 
   const newContent = input.allowMultiple
-    ? originalContent.replaceAll(input.targetContent, input.replacementContent)
-    : originalContent.replace(input.targetContent, input.replacementContent);
+    ? originalContent.replaceAll(target, replacement)
+    : originalContent.replace(target, replacement);
 
   // Syntax validation & bracket balance
   let syntaxStatus: EditFileResult["syntaxStatus"] = "valid";
@@ -261,7 +278,7 @@ export function executeEditFile(
   writeFileSync(resolved, newContent, "utf8");
 
   return {
-    filePath: path.relative(repoRoot, resolved) || resolved,
+    filePath: resolved,
     replacements: occurrences,
     syntaxStatus,
     message,
@@ -270,7 +287,7 @@ export function executeEditFile(
 }
 
 export function executeSearchFiles(repoRoot: string, input: SearchFilesInput): SearchFilesResult {
-  const searchRoot = input.rootDir ? resolveInsideRepo(repoRoot, input.rootDir) : repoRoot;
+  const searchRoot = input.rootDir ? resolveWorkspacePath(input.rootDir, repoRoot) : repoRoot;
   const maxResults = input.maxResults ?? 50;
   const results: string[] = [];
 
@@ -297,7 +314,7 @@ export function executeSearchFiles(repoRoot: string, input: SearchFilesInput): S
         continue;
       }
 
-      const relPath = path.relative(repoRoot, fullPath);
+      const relPath = path.relative(searchRoot, fullPath);
       if (stat.isDirectory()) {
         walk(fullPath);
       } else if (patternRegex.test(entry) || patternRegex.test(relPath)) {
@@ -316,7 +333,7 @@ export function executeSearchFiles(repoRoot: string, input: SearchFilesInput): S
 }
 
 export function executeGrepCode(repoRoot: string, input: GrepCodeInput): GrepCodeResult {
-  const searchRoot = input.rootDir ? resolveInsideRepo(repoRoot, input.rootDir) : repoRoot;
+  const searchRoot = input.rootDir ? resolveWorkspacePath(input.rootDir, repoRoot) : repoRoot;
   const maxResults = input.maxResults ?? 50;
   const matches: GrepMatch[] = [];
 
@@ -356,7 +373,7 @@ export function executeGrepCode(repoRoot: string, input: GrepCodeInput): GrepCod
             const line = lines[i];
             if (line && regex.test(line)) {
               matches.push({
-                file: path.relative(repoRoot, fullPath),
+                file: path.relative(searchRoot, fullPath),
                 line: i + 1,
                 content: line.trim().slice(0, 300),
               });
@@ -394,7 +411,7 @@ export async function executeRunCommand(
     }
   }
 
-  const executionCwd = input.cwd ? resolveInsideRepo(repoRoot, input.cwd) : repoRoot;
+  const executionCwd = input.cwd ? resolveWorkspacePath(input.cwd, repoRoot) : process.cwd();
   const timeoutMs = Math.min(120_000, Math.max(1_000, input.timeoutMs ?? 30_000));
 
   const startTime = Date.now();

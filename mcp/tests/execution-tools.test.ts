@@ -20,6 +20,9 @@ const testSandboxDir = path.join(repoRoot, "mcp/tests/.sandbox");
 
 describe("100% MCP Execution Tools Suite", () => {
   beforeAll(() => {
+    if (existsSync(testSandboxDir)) {
+      rmSync(testSandboxDir, { recursive: true, force: true });
+    }
     mkdirSync(testSandboxDir, { recursive: true });
   });
 

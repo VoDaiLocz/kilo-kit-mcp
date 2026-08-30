@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const SEGMENT_PATTERN = /^[a-z0-9_][a-z0-9_-]*$/;
@@ -29,3 +31,37 @@ export function resolveInsideRepo(repoRoot: string, relativePath: string): strin
 
   return resolved;
 }
+
+export function resolveWorkspacePath(targetPath: string, customBaseDir?: string): string {
+  let normalized = targetPath.trim();
+
+  // Support tilde (~) expansion
+  if (normalized === "~") {
+    return os.homedir();
+  }
+  if (normalized.startsWith("~/") || normalized.startsWith("~\\")) {
+    normalized = path.join(os.homedir(), normalized.slice(2));
+  }
+
+  if (path.isAbsolute(normalized)) {
+    return path.resolve(normalized);
+  }
+
+  // 1. If customBaseDir is provided and path exists there, use it
+  if (customBaseDir) {
+    const fromBase = path.resolve(customBaseDir, normalized);
+    if (existsSync(fromBase)) {
+      return fromBase;
+    }
+  }
+
+  // 2. Check if file exists relative to process.cwd()
+  const fromCwd = path.resolve(process.cwd(), normalized);
+  if (existsSync(fromCwd)) {
+    return fromCwd;
+  }
+
+  // 3. For new files: default to customBaseDir if provided, else process.cwd()
+  return customBaseDir ? path.resolve(customBaseDir, normalized) : fromCwd;
+}
+
