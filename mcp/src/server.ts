@@ -104,7 +104,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     {
       instructions:
-        "CRITICAL: You MUST call kilo_orchestrate_task as your FIRST action for any user request involving code, debugging, bug fixes, UI, features, refactoring, or project work. Never jump directly into reading or editing files with native tools without calling kilo_orchestrate_task first. Follow the returned nextAction and workflow skills in order.",
+        "CRITICAL KILO-KIT C4 PROTOCOL:\n1. You MUST call kilo_orchestrate_task as your FIRST action for any request involving code, debugging, bug fixes, UI, features, refactoring, or project work.\n2. Do NOT use native terminal or edit tools (Bash/Edit/Read). You MUST use kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command for all file I/O and command executions.\n3. Always pass the sessionId obtained from kilo_orchestrate_task to all subsequent tool calls.",
     },
   );
 
@@ -395,15 +395,15 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
   server.registerTool(
     "kilo_read_file",
     {
-      title: "Read File (Kilo-Kit)",
+      title: "Read File (Kilo-Kit Safe Workspace I/O)",
       description:
-        "Read file content safely within repository boundaries, supporting line ranges and output size capping.",
+        "Read file content safely across workspace boundaries, supporting line ranges and output size capping. Registers pre-flight grounding for subsequent edits.",
       inputSchema: {
-        filePath: z.string().min(1).describe("Relative path to file in repo"),
+        filePath: z.string().min(1).describe("Path to file (supports relative path, absolute path, and '~')"),
         startLine: z.number().int().min(1).optional().describe("Starting line number (1-indexed)"),
         endLine: z.number().int().min(1).optional().describe("Ending line number (1-indexed)"),
         maxBytes: z.number().int().min(100).max(1024 * 1024).optional().describe("Max bytes to return"),
-        sessionId: z.string().optional().describe("Optional active session ID to register grounding evidence"),
+        sessionId: z.string().optional().describe("Active session ID from kilo_orchestrate_task. Pass this to register pre-flight grounding for kilo_edit_file."),
         format: formatSchema.optional(),
       },
       annotations: {
@@ -417,7 +417,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId: sessionId ?? "default",
         toolName: "kilo_read_file",
-        args: { filePath, startLine, endLine },
+        args: { filePath: result.filePath, startLine, endLine },
         success: true,
         durationMs: 5,
         summary: `Read ${result.totalLines} lines from ${result.filePath}`,

@@ -88,18 +88,25 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
         (suggestion) => session.memoryConfirmations[suggestion.key] === undefined,
       );
       const state = selectState(session, pendingSuggestions);
-      if (state !== "ready") {
+      if (state === "brainstorming_required") {
         return {
           ready: false,
           state,
-          reason: `Session '${sessionId}' is in state '${state}'. You must pass brainstorming approval (brainstormingApproved=true) via kilo_orchestrate_task before code modification or command execution.`,
+          reason: `Session '${sessionId}' is in state 'brainstorming_required'. You must get user approval (brainstormingApproved=true) via kilo_orchestrate_task before code modification or command execution.`,
         };
       }
-      const cognitiveGate = checkCognitiveGate(session);
-      if (!cognitiveGate.passed) {
+      if (state === "awaiting_memory_confirmation") {
         return {
           ready: false,
-          state: "ready",
+          state,
+          reason: `Session '${sessionId}' is awaiting memory confirmation. Accept or reject memory suggestions via kilo_orchestrate_task before proceeding.`,
+        };
+      }
+      if (state === "cognitive_required") {
+        const cognitiveGate = checkCognitiveGate(session);
+        return {
+          ready: false,
+          state: "cognitive_required",
           reason: cognitiveGate.reason,
         };
       }
@@ -270,6 +277,12 @@ function selectState(
   if (pendingSuggestions.length > 0) {
     return "awaiting_memory_confirmation";
   }
+  if (isSubstantiveWork(session)) {
+    const cognitiveGate = checkCognitiveGate(session);
+    if (!cognitiveGate.passed) {
+      return "cognitive_required";
+    }
+  }
   return "ready";
 }
 
@@ -364,6 +377,19 @@ function buildNextAction(
   if (state === "awaiting_memory_confirmation") {
     return `Accept or reject memory suggestions before execution: ${pendingSuggestions.map((item) => item.key).join(", ")}.`;
   }
+  if (state === "cognitive_required") {
+    const req = COGNITIVE_REQUIREMENTS[session.route.taskMode] ?? {
+      required: ["kilo_think_step", "kilo_grill_plan"],
+      label: session.route.taskMode || "development",
+    };
+    const missing = req.required.filter((tool) => !session.cognitiveToolsUsed.has(tool));
+    const toolList = missing.map((t) => `\`${t}\``).join(" and ");
+    return [
+      `[COGNITIVE REASONING GATE] Brainstorming approved, but cognitive reasoning is mandatory before writing code or running commands.`,
+      `You MUST call ${toolList} with sessionId "${session.sessionId}".`,
+      `CRITICAL RULE: Do NOT use native Edit/Bash tools. Use only kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command, and ALWAYS pass sessionId: "${session.sessionId}".`,
+    ].join("\n");
+  }
   if (state === "ready") {
     const workflow = executableWorkflow(session);
     if (workflow.length > 0) {
@@ -372,9 +398,11 @@ function buildNextAction(
         .map((step, idx) => `${idx + 1}. [${step.role}] ${step.skill.id}: ${step.reason}`)
         .join("\n");
       return [
+        `[ALL GATES PASSED - READY TO EXECUTE]`,
         `Load skills in workflow order: ${order}. Start with ${workflow[0]?.skill.id} using kilo_get_skill.`,
         `Execute the workflow steps in order:`,
         stepLines,
+        `CRITICAL RULE: Do NOT use native Edit/Bash tools. Use only kilo_read_file, kilo_write_file, kilo_edit_file, and kilo_run_command with sessionId: "${session.sessionId}".`,
         `Satisfy the verification gate before claiming completion.`,
       ].join("\n");
     }

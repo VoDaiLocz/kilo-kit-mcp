@@ -178,4 +178,62 @@ describe("KiloSentinel Supervisor & Circuit Breaker", () => {
     );
     expect(divergentReport.verdict).toBe("REPLAN_TRIGGERED");
   });
+
+  it("grounds files using canonical paths across relative, tilde, and absolute paths", () => {
+    const memory = createInMemoryOrchestrationMemory();
+    const sentinel = new KiloSentinel({ memory });
+    const sessionId = "test-canonical-grounding";
+
+    // Read with tilde or relative path
+    sentinel.recordPostExecution({
+      sessionId,
+      toolName: "kilo_read_file",
+      args: { filePath: "~/my-project/src/index.ts" },
+      success: true,
+      durationMs: 5,
+      summary: "Read 10 lines",
+    });
+
+    // Edit with home-expanded absolute path -> ALLOWED
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const preFlight = sentinel.inspectPreFlight({
+      sessionId,
+      toolName: "kilo_edit_file",
+      args: {
+        filePath: `${home}/my-project/src/index.ts`,
+        targetContent: "foo",
+        replacementContent: "bar",
+      },
+    });
+
+    expect(preFlight.allowed).toBe(true);
+  });
+
+  it("adopts grounding from default session if agent read file without sessionId", () => {
+    const memory = createInMemoryOrchestrationMemory();
+    const sentinel = new KiloSentinel({ memory });
+
+    // Agent read file without sessionId -> recorded in "default"
+    sentinel.recordPostExecution({
+      sessionId: "default",
+      toolName: "kilo_read_file",
+      args: { filePath: "src/service.ts" },
+      success: true,
+      durationMs: 5,
+      summary: "Read 15 lines",
+    });
+
+    // Agent then edits with the real session ID -> ALLOWED via fallback!
+    const preFlight = sentinel.inspectPreFlight({
+      sessionId: "real-session-123",
+      toolName: "kilo_edit_file",
+      args: {
+        filePath: "src/service.ts",
+        targetContent: "const x = 1;",
+        replacementContent: "const x = 2;",
+      },
+    });
+
+    expect(preFlight.allowed).toBe(true);
+  });
 });

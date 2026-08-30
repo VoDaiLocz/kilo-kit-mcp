@@ -148,13 +148,13 @@ describe("100% MCP Execution Tools Suite", () => {
       });
       const sessionId = res1.sessionId;
 
-      // 2. Approve brainstorming -> transitions to ready
+      // 2. Approve brainstorming -> transitions to cognitive_required
       const res2 = orchestrator.orchestrate({
         sessionId,
         message: "Add calculator utility",
         brainstormingApproved: true,
       });
-      expect(res2.state).toBe("ready");
+      expect(res2.state).toBe("cognitive_required");
 
       orchestrator.recordCognitiveTool(sessionId, "kilo_think_step", {
         thoughtLength: 100,
@@ -163,6 +163,12 @@ describe("100% MCP Execution Tools Suite", () => {
       orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
         planLength: 100,
       });
+
+      const resReady = orchestrator.orchestrate({
+        sessionId,
+        message: "Add calculator utility",
+      });
+      expect(resReady.state).toBe("ready");
 
       // 3. kilo_write_file succeeds
       const writeRes = executeWriteFile(repoRoot, orchestrator, {
@@ -204,7 +210,7 @@ describe("100% MCP Execution Tools Suite", () => {
         message: "Clean temporary files",
         brainstormingApproved: true,
       });
-      expect(res.state).toBe("ready");
+      expect(res.state).toBe("cognitive_required");
 
       orchestrator.recordCognitiveTool(res.sessionId, "kilo_think_step", {
         thoughtLength: 100,
@@ -213,6 +219,12 @@ describe("100% MCP Execution Tools Suite", () => {
       orchestrator.recordCognitiveTool(res.sessionId, "kilo_grill_plan", {
         planLength: 100,
       });
+
+      const resReady = orchestrator.orchestrate({
+        sessionId: res.sessionId,
+        message: "Clean temporary files",
+      });
+      expect(resReady.state).toBe("ready");
 
       await expect(
         executeRunCommand(repoRoot, orchestrator, {

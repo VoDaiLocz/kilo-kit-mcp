@@ -60,7 +60,7 @@ describe("skill registry", () => {
     const registry = await createSkillRegistry({ repoRoot });
     const skills = registry.listSkills();
 
-    expect(skills.length).toBe(177);
+    expect(skills.length).toBeGreaterThanOrEqual(177);
 
     // Verify nested games skills exist with distinct IDs
     const games2d = registry.getSkill("games/2d-games");

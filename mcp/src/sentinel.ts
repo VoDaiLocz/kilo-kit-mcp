@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { resolveWorkspacePath } from "./paths.js";
 import type { OrchestrationMemoryStore } from "./orchestration-memory.js";
 import type {
   BenchmarkReport,
@@ -104,22 +105,31 @@ export class KiloSentinel {
     // 3. Pre-flight Grounding Lock check for Edit tools
     if (toolName === "kilo_edit_file") {
       const filePath = String(args.filePath || "").trim();
+      const canonical = resolveWorkspacePath(filePath);
       const normalizedPath = path.normalize(filePath);
       const sessionGrounded = this.groundedFiles.get(sessionId) ?? new Set<string>();
 
-      if (!sessionGrounded.has(normalizedPath)) {
-        return {
-          allowed: false,
-          circuitState: currentState,
-          code: "PREFLIGHT_GROUNDING_VIOLATION",
-          reason: `[KILO-SENTINEL PRE-FLIGHT GROUNDING LOCK] Attempted to edit '${filePath}' without prior reading/probing. You MUST inspect the file using 'kilo_read_file' or 'kilo_grep_code' first.`,
-          suggestedAction: `Call kilo_read_file with filePath: "${filePath}" to inspect actual source code.`,
-        };
+      const isGrounded = sessionGrounded.has(canonical) || sessionGrounded.has(normalizedPath);
+
+      if (!isGrounded) {
+        // Fallback: check if the file was probed in the "default" session (agent omitted sessionId in kilo_read_file)
+        const defaultGrounded = this.groundedFiles.get("default");
+        if (defaultGrounded && (defaultGrounded.has(canonical) || defaultGrounded.has(normalizedPath))) {
+          this.registerGroundedFile(sessionId, canonical);
+        } else {
+          return {
+            allowed: false,
+            circuitState: currentState,
+            code: "PREFLIGHT_GROUNDING_VIOLATION",
+            reason: `[KILO-SENTINEL PRE-FLIGHT GROUNDING LOCK] Attempted to edit '${filePath}' without prior reading/probing. You MUST inspect the file using 'kilo_read_file' or 'kilo_grep_code' first.`,
+            suggestedAction: `Call kilo_read_file with filePath: "${filePath}" and sessionId: "${sessionId}" to inspect actual source code.`,
+          };
+        }
       }
 
       // Check for Edit Thrashing
       if (args.targetContent) {
-        const thrashingCheck = this.checkEditThrashing(sessionId, normalizedPath, String(args.targetContent));
+        const thrashingCheck = this.checkEditThrashing(sessionId, canonical, String(args.targetContent));
         if (!thrashingCheck.allowed) {
           this.tripCircuit(sessionId, thrashingCheck.reason);
           return {
@@ -303,11 +313,14 @@ export class KiloSentinel {
   }
 
   private registerGroundedFile(sessionId: string, filePath: string): void {
+    const canonical = resolveWorkspacePath(filePath);
     const normalized = path.normalize(filePath);
     if (!this.groundedFiles.has(sessionId)) {
       this.groundedFiles.set(sessionId, new Set<string>());
     }
-    this.groundedFiles.get(sessionId)!.add(normalized);
+    const set = this.groundedFiles.get(sessionId)!;
+    set.add(canonical);
+    set.add(normalized);
     this.incrementProbeCount(sessionId);
   }
 

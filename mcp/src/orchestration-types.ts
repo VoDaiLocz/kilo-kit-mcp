@@ -4,6 +4,7 @@ export type OrchestrationState =
   | "new"
   | "routed_internal"
   | "brainstorming_required"
+  | "cognitive_required"
   | "questioning"
   | "memory_check"
   | "awaiting_memory_confirmation"
