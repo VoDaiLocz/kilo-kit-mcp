@@ -340,8 +340,8 @@ export function executeGrepCode(repoRoot: string, input: GrepCodeInput): GrepCod
   const matches: GrepMatch[] = [];
 
   const regex = input.isRegex
-    ? new RegExp(input.query, input.caseSensitive ? "g" : "gi")
-    : new RegExp(escapeRegex(input.query), input.caseSensitive ? "g" : "gi");
+    ? new RegExp(input.query, input.caseSensitive ? "" : "i")
+    : new RegExp(escapeRegex(input.query), input.caseSensitive ? "" : "i");
 
   function walk(dir: string): void {
     if (matches.length >= maxResults) return;

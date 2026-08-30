@@ -146,9 +146,9 @@ export class KiloSentinel {
     // 4. Exact Consecutive Tool Repetition Check
     const argsHash = this.computeArgsHash(toolName, args);
     const history = this.sessionHistory.get(sessionId) ?? [];
-    if (history.length >= this.maxConsecutiveIdentical - 1) {
+    if (this.maxConsecutiveIdentical > 1 && history.length >= this.maxConsecutiveIdentical - 1) {
       const recentCalls = history.slice(-(this.maxConsecutiveIdentical - 1));
-      const allIdentical = recentCalls.every((call) => call.toolName === toolName && call.argsHash === argsHash);
+      const allIdentical = recentCalls.length > 0 && recentCalls.every((call) => call.toolName === toolName && call.argsHash === argsHash);
       if (allIdentical) {
         const reason = `Detected ${this.maxConsecutiveIdentical} consecutive identical invocations of tool '${toolName}'.`;
         this.tripCircuit(sessionId, reason);
@@ -202,7 +202,7 @@ export class KiloSentinel {
     const argsHash = this.computeArgsHash(toolName, args);
     let payloadSummary = "";
     if (toolName === "kilo_edit_file") {
-      payloadSummary = `${args.filePath} | target:${String(args.targetContent || "").slice(0, 100)}`;
+      payloadSummary = `${args.filePath} | target:${String(args.targetContent || "").slice(0, 500)}`;
     } else if (toolName === "kilo_run_command") {
       payloadSummary = String(args.command || "");
     }
@@ -337,7 +337,7 @@ export class KiloSentinel {
 
   private checkEditThrashing(sessionId: string, filePath: string, targetContent: string): { allowed: boolean; reason: string } {
     const history = this.sessionHistory.get(sessionId) ?? [];
-    const recentEdits = history.filter((h) => h.toolName === "kilo_edit_file" && h.payloadSummary.includes(filePath));
+    const recentEdits = history.slice(-10).filter((h) => h.toolName === "kilo_edit_file" && h.payloadSummary.includes(filePath));
 
     if (recentEdits.length >= 2) {
       const lastEdit = recentEdits[recentEdits.length - 1]!;
@@ -387,12 +387,15 @@ export function canonicalizeJson(obj: unknown): string {
  * Memory-efficient Levenshtein Distance Algorithm (O(min(M,N)) space)
  */
 export function computeLevenshteinDistance(a: string, b: string): number {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
+  const MAX_COMPARE_LEN = 2000;
+  const strA = a.length > MAX_COMPARE_LEN ? a.slice(0, MAX_COMPARE_LEN) : a;
+  const strB = b.length > MAX_COMPARE_LEN ? b.slice(0, MAX_COMPARE_LEN) : b;
+  if (strA === strB) return 0;
+  if (strA.length === 0) return strB.length;
+  if (strB.length === 0) return strA.length;
 
-  const m = a.length;
-  const n = b.length;
+  const m = strA.length;
+  const n = strB.length;
   const v0 = new Uint32Array(n + 1);
   const v1 = new Uint32Array(n + 1);
 
@@ -403,7 +406,7 @@ export function computeLevenshteinDistance(a: string, b: string): number {
   for (let i = 0; i < m; i++) {
     v1[0] = i + 1;
     for (let j = 0; j < n; j++) {
-      const cost = a.charCodeAt(i) === b.charCodeAt(j) ? 0 : 1;
+      const cost = strA.charCodeAt(i) === strB.charCodeAt(j) ? 0 : 1;
       const insert = (v1[j] ?? 0) + 1;
       const del = (v0[j + 1] ?? 0) + 1;
       const sub = (v0[j] ?? 0) + cost;

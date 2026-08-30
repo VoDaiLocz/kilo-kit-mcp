@@ -421,13 +421,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ filePath, startLine, endLine, maxBytes, sessionId, format }) => {
+      const start = Date.now();
       const result = executeReadFile(workspaceRoot, { filePath, startLine, endLine, maxBytes });
       sentinel.recordPostExecution({
         sessionId: sessionId ?? "default",
         toolName: "kilo_read_file",
         args: { filePath: result.filePath, startLine, endLine },
         success: true,
-        durationMs: 5,
+        durationMs: Date.now() - start,
         summary: `Read ${result.totalLines} lines from ${result.filePath}`,
       });
       return textResponse(formatReadFile(result, normalizeFormat(format)));
@@ -454,13 +455,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ pattern, rootDir, maxResults, sessionId, format }) => {
+      const start = Date.now();
       const result = executeSearchFiles(workspaceRoot, { pattern, rootDir, maxResults });
       sentinel.recordPostExecution({
         sessionId: sessionId ?? "default",
         toolName: "kilo_search_files",
         args: { pattern, rootDir },
         success: true,
-        durationMs: 5,
+        durationMs: Date.now() - start,
         summary: `Found ${result.totalMatches} file(s) matching ${pattern}`,
       });
       return textResponse(formatSearchFiles(result, normalizeFormat(format)));
@@ -489,13 +491,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({ query, rootDir, isRegex, caseSensitive, maxResults, sessionId, format }) => {
+      const start = Date.now();
       const result = executeGrepCode(workspaceRoot, { query, rootDir, isRegex, caseSensitive, maxResults });
       sentinel.recordPostExecution({
         sessionId: sessionId ?? "default",
         toolName: "kilo_grep_code",
         args: { query, rootDir },
         success: true,
-        durationMs: 5,
+        durationMs: Date.now() - start,
         summary: `Found ${result.totalMatches} match(es) for ${query}`,
       });
       return textResponse(formatGrepCode(result, normalizeFormat(format)));

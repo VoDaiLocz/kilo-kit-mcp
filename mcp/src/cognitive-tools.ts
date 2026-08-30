@@ -111,13 +111,18 @@ export interface SynthesizeSkillResult {
   message: string;
 }
 
-// In-memory cognitive thoughts store per session
-// In-memory cognitive thoughts store per session
+// In-memory cognitive thoughts store per session (bounded LRU)
+const MAX_SESSION_THOUGHTS = 50;
+const MAX_TRACKED_SESSIONS = 100;
 const sessionThoughts = new Map<string, ThoughtRecord[]>();
 
 export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
   const sessionKey = input.sessionId ?? "default_session";
   if (!sessionThoughts.has(sessionKey)) {
+    if (sessionThoughts.size >= MAX_TRACKED_SESSIONS) {
+      const oldestKey = sessionThoughts.keys().next().value;
+      if (oldestKey) sessionThoughts.delete(oldestKey);
+    }
     sessionThoughts.set(sessionKey, []);
   }
 
@@ -139,7 +144,7 @@ export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
   };
 
   // If revision, mark or replace
-  if (record.isRevision && record.revisesThought) {
+  if (record.isRevision && record.revisesThought !== undefined) {
     const targetIdx = thoughts.findIndex((t) => t.thoughtNumber === record.revisesThought);
     if (targetIdx >= 0) {
       thoughts[targetIdx] = record;
@@ -148,6 +153,10 @@ export function executeThinkStep(input: ThinkStepInput): ThinkStepResult {
     }
   } else {
     thoughts.push(record);
+  }
+
+  if (thoughts.length > MAX_SESSION_THOUGHTS) {
+    thoughts.shift();
   }
 
   const branches = [...new Set(thoughts.map((t) => t.branchId).filter(Boolean))] as string[];
@@ -361,17 +370,18 @@ export async function executeSynthesizeSkill(
   const sanitizedName = input.skillName
     .toLowerCase()
     .replace(/[^a-z0-9-_]/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
   const skillDir = resolveInsideRepo(repoRoot, path.join("skills", category, sanitizedName));
   const skillFile = path.join(skillDir, "SKILL.md");
 
+  const cleanDescription = input.problemDescription.replace(/[\r\n]+/g, " ").replace(/"/g, "'").slice(0, 250).trim();
   const keywordsList = input.keywords && input.keywords.length > 0 ? input.keywords.join(", ") : sanitizedName;
 
   const skillContent = `---
 name: "${sanitizedName}"
-description: >-
-  ${input.problemDescription.replace(/\n/g, " ").slice(0, 250)} Keywords: ${keywordsList}
+description: "${cleanDescription} Keywords: ${keywordsList}"
 ---
 # ${input.skillName}
 

@@ -213,6 +213,9 @@ async function readSkillRecord(repoRoot: string, skillFile: string): Promise<Ski
   const relativeDirectory = toPosixPath(repoRoot, directory);
   const parts = relativeDirectory.split("/");
   const skillsIndex = parts.indexOf("skills");
+  if (skillsIndex === -1) {
+    return undefined;
+  }
   const relFromSkills = parts.slice(skillsIndex + 1).join("/");
   const category = parts[skillsIndex + 1];
   const folderName = parts.at(-1);

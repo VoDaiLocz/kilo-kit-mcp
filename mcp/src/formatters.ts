@@ -349,10 +349,21 @@ export function formatGrepCode(result: any, format: "markdown" | "json"): string
 export function formatRunCommand(result: any, format: "markdown" | "json"): string {
   if (format === "json") return JSON.stringify(result, null, 2);
   const statusEmoji = result.exitCode === 0 ? "✅" : "❌";
+  const MAX_OUTPUT_CHARS = 64 * 1024;
+  const stdout = result.stdout
+    ? result.stdout.length > MAX_OUTPUT_CHARS
+      ? `${result.stdout.slice(0, MAX_OUTPUT_CHARS)}\n... [Output truncated at 64KB]`
+      : result.stdout
+    : "";
+  const stderr = result.stderr
+    ? result.stderr.length > MAX_OUTPUT_CHARS
+      ? `${result.stderr.slice(0, MAX_OUTPUT_CHARS)}\n... [Output truncated at 64KB]`
+      : result.stderr
+    : "";
   return [
     `${statusEmoji} Command: \`${result.command}\` (Exit Code: ${result.exitCode}, Duration: ${result.durationMs}ms)`,
-    result.stdout ? `\n**Stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
-    result.stderr ? `\n**Stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
+    stdout ? `\n**Stdout:**\n\`\`\`\n${stdout}\n\`\`\`` : "",
+    stderr ? `\n**Stderr:**\n\`\`\`\n${stderr}\n\`\`\`` : "",
   ].filter(Boolean).join("\n");
 }
 

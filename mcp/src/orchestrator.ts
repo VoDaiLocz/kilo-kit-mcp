@@ -433,7 +433,7 @@ function isReadOnlyRequest(message: string): boolean {
   ) {
     return false;
   }
-  return /\b(status|show|read|explain|what is|what's|la sao|là sao|giải thích|là gì)\b/i.test(message);
+  return /\b(status|show|read|explain|what is|what's|la sao|là sao|giải thích|là gì|list|view|inspect|describe|check|compare|search|kiểm tra|xem)\b/i.test(message);
 }
 
 function toJsonObject(value: unknown): Record<string, unknown> {

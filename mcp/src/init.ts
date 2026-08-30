@@ -104,7 +104,7 @@ function replaceOrAppendBlock(current: string, block: string): string {
     return `${current.slice(0, start)}${block}${current.slice(afterEnd)}`;
   }
 
-  const separator = current.endsWith("\n") ? "\n" : "\n\n";
+  const separator = current.length === 0 ? "" : current.endsWith("\n") ? "\n" : "\n\n";
   return `${current}${separator}${block}`;
 }
 
@@ -397,7 +397,7 @@ function usage(): string {
     "  npx -y @vodailoc/kilo-kit-mcp global",
     "  kilo-kit-init init --client all",
     "  kilo-kit-init init --client gemini --dir /path/to/project",
-  ].join("\\n");
+  ].join("\n");
 }
 
 export function setupGitGlobalAliases(): void {

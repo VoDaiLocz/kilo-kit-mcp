@@ -51,15 +51,19 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
   );
   try {
     const db = new DatabaseSync(sqlitePath);
-    const tableCount = db.prepare("SELECT count(*) as cnt FROM sqlite_master WHERE type='table'").get() as {
-      cnt: number;
-    };
-    checks.push({
-      name: "SQLite Persistence",
-      category: "database",
-      status: "pass",
-      message: `SQLite database accessible at ${sqlitePath} (${tableCount?.cnt ?? 0} tables).`,
-    });
+    try {
+      const tableCount = db.prepare("SELECT count(*) as cnt FROM sqlite_master WHERE type='table'").get() as {
+        cnt: number;
+      };
+      checks.push({
+        name: "SQLite Persistence",
+        category: "database",
+        status: "pass",
+        message: `SQLite database accessible at ${sqlitePath} (${tableCount?.cnt ?? 0} tables).`,
+      });
+    } finally {
+      db.close();
+    }
   } catch (err: unknown) {
     checks.push({
       name: "SQLite Persistence",

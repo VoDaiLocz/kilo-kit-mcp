@@ -77,14 +77,14 @@ function applyAnalyticsAdjustment(
   analytics: RouteAnalyticsStore | undefined,
 ): RouteCandidate {
   const adjustment = analytics?.scoreAdjustment(candidate.skill.id, taskMode) ?? 0;
-  if (adjustment <= 0) {
+  if (adjustment === 0) {
     return candidate;
   }
 
   const scoreBreakdown = { ...candidate.scoreBreakdown, analytics: adjustment };
   return {
     ...candidate,
-    score: candidate.score + adjustment,
+    score: Math.max(1, candidate.score + adjustment),
     scoreBreakdown,
     reason: explainRoute(candidate.skill, taskMode, candidate.matchedSignals, scoreBreakdown),
   };

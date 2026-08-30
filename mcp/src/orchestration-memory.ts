@@ -86,6 +86,7 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
       if (filter?.taskMode) {
         filtered = filtered.filter((r) => r.taskMode === filter.taskMode);
       }
+      filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       return filtered.slice(0, filter?.limit ?? 50).map(clone);
     },
     recordTrajectory(trajectory) {
@@ -103,11 +104,15 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
         createdAt: new Date().toISOString(),
       };
       trajectories.push(record);
+      if (trajectories.length > 5000) {
+        trajectories.shift();
+      }
       return clone(record);
     },
     getTrajectories(sessionId, limit = 50) {
       return trajectories
         .filter((t) => t.sessionId === sessionId)
+        .sort((a, b) => a.stepNumber - b.stepNumber)
         .slice(0, limit)
         .map(clone);
     },
@@ -684,5 +689,12 @@ function rowToFact(row: SqliteFactRow): MemoryFact {
 }
 
 function clone<T>(value: T): T {
+  if (typeof structuredClone === "function") {
+    try {
+      return structuredClone(value);
+    } catch {
+      // Fallback for non-serializable objects
+    }
+  }
   return JSON.parse(JSON.stringify(value)) as T;
 }

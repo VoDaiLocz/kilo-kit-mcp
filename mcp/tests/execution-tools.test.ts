@@ -71,6 +71,19 @@ describe("100% MCP Execution Tools Suite", () => {
       expect(result.totalMatches).toBeGreaterThan(0);
       expect(result.matches[0]?.file).toContain("server.ts");
     });
+
+    it("matches all consecutive lines without stateful regex skipping", () => {
+      const sampleFile = path.join(testSandboxDir, "consecutive-matches.txt");
+      writeFileSync(sampleFile, "match alpha\nmatch beta\nmatch gamma\nmatch delta\n", "utf8");
+
+      const result = executeGrepCode(repoRoot, {
+        query: "match",
+        rootDir: "mcp/tests/.sandbox",
+      });
+
+      const matchedLines = result.matches.filter((m) => m.file.includes("consecutive-matches.txt"));
+      expect(matchedLines.length).toBe(4);
+    });
   });
 
   describe("Protocol-Level Hard-Gate on Write, Edit, and Run Command", () => {
