@@ -243,6 +243,8 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       }
       return textResponse(
         [
+          `> 🏷️ **Gate 5 — Lưu bài học: ${record.lessonsLearned.slice(0, 120)}${record.lessonsLearned.length > 120 ? "..." : ""}**`,
+          "",
           "# Kilo-Kit Self-Improvement Reflection Recorded",
           "",
           `ID: \`${record.id}\``,
@@ -678,6 +680,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       description:
         "Iterative step-by-step reasoning engine with hypothesis tracking, revision, and solution branching.",
       inputSchema: {
+        label: z.string().min(10).optional().describe(
+          "REQUIRED for observability: Describe WHAT you are analyzing, e.g. 'So sánh 3 phương án: LocalStorage vs IndexedDB vs Supabase'. This appears in terminal tool call display so users can monitor agent thinking.",
+        ),
         thought: z.string().min(1).describe("Current reasoning thought"),
         thoughtNumber: z.number().int().min(1).describe("Current thought step index"),
         totalThoughts: z.number().int().min(1).describe("Estimated total thought steps"),
@@ -697,6 +702,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       },
     },
     async ({
+      label,
       thought,
       thoughtNumber,
       totalThoughts,
@@ -727,7 +733,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           isSuperficial: thought.trim().length < 30 || /^(prepare|ready|next step|file creation|start coding)$/i.test(thought.trim()),
         });
       }
-      return textResponse(formatThinkStep(result, normalizeFormat(format)));
+      const output = formatThinkStep(result, normalizeFormat(format));
+      const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang làm gì*\n\n`;
+      return textResponse(header + output);
     },
   );
 
@@ -738,6 +746,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       description:
         "Automated adversarial stress-testing against Inversion, Simplification Cascades, Blast Radius, and Edge-cases.",
       inputSchema: {
+        label: z.string().min(10).optional().describe(
+          "REQUIRED for observability: Describe WHAT plan you are grilling, e.g. 'Phản biện phương án IndexedDB + Dexie cho Bookmark feature'. Displayed in terminal so users monitor agent reasoning.",
+        ),
         plan: z.string().min(1).describe("The proposed architecture, implementation plan, or bugfix strategy"),
         context: z.string().optional().describe("Relevant file paths, tech stack, or system constraints"),
         depth: z.enum(["quick", "deep", "hardcore"]).optional().describe("Grilling depth"),
@@ -750,7 +761,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ plan, context, depth, sessionId, format }) => {
+    async ({ label, plan, context, depth, sessionId, format }) => {
       const result = executeGrillPlan({ plan, context, depth });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
@@ -758,7 +769,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           riskScore: result.riskScore,
         });
       }
-      return textResponse(formatGrillPlan(result, normalizeFormat(format)));
+      const output = formatGrillPlan(result, normalizeFormat(format));
+      const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang phản biện gì*\n\n`;
+      return textResponse(header + output);
     },
   );
 
@@ -769,6 +782,9 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       description:
         "Recursive causal backward-propagation analysis from crash log to the underlying systemic root cause.",
       inputSchema: {
+        label: z.string().min(10).optional().describe(
+          "REQUIRED for observability: Name the bug you are tracing, e.g. 'Truy vết lỗi TypeError: Cannot read property sessionId'. Displayed in terminal so users see what error is being diagnosed.",
+        ),
         errorLog: z.string().min(1).describe("Raw error message, stack trace, or failing test output"),
         failingFile: z.string().optional().describe("File where failure occurred"),
         expectedBehavior: z.string().optional().describe("Expected behavior"),
@@ -782,14 +798,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, format }) => {
+    async ({ label, errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, format }) => {
       const result = executeTraceRootCause({ errorLog, failingFile, expectedBehavior, actualBehavior });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause", {
           errorLogLength: errorLog.trim().length,
         });
       }
-      return textResponse(formatTraceRootCause(result, normalizeFormat(format)));
+      const output = formatTraceRootCause(result, normalizeFormat(format));
+      const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang truy vết lỗi gì*\n\n`;
+      return textResponse(header + output);
     },
   );
 
