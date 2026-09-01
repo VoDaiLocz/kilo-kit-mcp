@@ -6,6 +6,21 @@ export function textResponse(text: string): { content: Array<{ type: "text"; tex
   return { content: [{ type: "text", text }] };
 }
 
+export function formatObservabilityDirective(options: {
+  justConcluded: string;
+  nextToolRecommendation: string;
+}): string {
+  return [
+    "",
+    "---",
+    "📢 **[MANDATORY INTER-TOOL NARRATION DIRECTIVE]**",
+    `👉 **Action Required before next tool call:** Emit a 1-2 sentence progress update directly to the terminal user:`,
+    `   - **[DECISION]:** State what you just concluded, selected, or discovered regarding: ${options.justConcluded}`,
+    `   - **[NEXT]:** State what tool you are calling next and why: ${options.nextToolRecommendation}`,
+    `⚠️ DO NOT execute the next tool silently. The terminal user cannot see internal MCP return bodies unless you narrate them.`,
+  ].join("\n");
+}
+
 export function formatSkills(skills: SkillRecord[], input: SearchSkillsInput, format: "markdown" | "json"): string {
   if (format === "json") {
     return JSON.stringify({ query: input.query, skills }, null, 2);
@@ -258,6 +273,10 @@ export function formatOrchestration(result: OrchestrationResult, format: "markdo
     verification,
     "",
     `Next action: ${result.nextAction}`,
+    formatObservabilityDirective({
+      justConcluded: `Task mode '${result.taskMode}' and workflow: [${result.workflow.map((w) => w.skill.id).join(" -> ")}]`,
+      nextToolRecommendation: result.nextAction,
+    }),
   ].join("\n");
 }
 
@@ -380,6 +399,10 @@ export function formatThinkStep(result: any, format: "markdown" | "json"): strin
     t.thought,
     "",
     `*Status:* ${result.isComplete ? "✅ Reasoning Complete" : `⏳ Continuing (${result.totalRecordedThoughts} steps recorded)`}`,
+    formatObservabilityDirective({
+      justConcluded: `Which architectural option (A, B, or C) you selected from this thought step`,
+      nextToolRecommendation: `kilo_grill_plan to stress-test this chosen option`,
+    }),
   ].filter(Boolean).join("\n");
 }
 
@@ -397,6 +420,10 @@ export function formatGrillPlan(result: any, format: "markdown" | "json"): strin
     ),
     "## 🛡️ Pre-Code Hardening Checklist",
     ...result.hardeningChecklist.map((item: string) => `- [ ] ${item}`),
+    formatObservabilityDirective({
+      justConcluded: `Grill verdict (${result.readinessVerdict}) and key risk mitigation strategy`,
+      nextToolRecommendation: `kilo_orchestrate_task (with brainstormingApproved=true) or kilo_get_skill to begin execution`,
+    }),
   ].join("\n");
 }
 
@@ -415,6 +442,10 @@ export function formatTraceRootCause(result: any, format: "markdown" | "json"): 
     "",
     `## 🧪 Regression Prevention Test`,
     result.regressionPreventionTest,
+    formatObservabilityDirective({
+      justConcluded: `Identified Root Cause: ${result.rootCause}`,
+      nextToolRecommendation: `kilo_read_file or view_file to locate the code, then apply the minimal fix`,
+    }),
   ].join("\n");
 }
 
@@ -427,6 +458,10 @@ export function formatCompactContext(result: any, format: "markdown" | "json"): 
     "```",
     result.compactedContent,
     "```",
+    formatObservabilityDirective({
+      justConcluded: `Context compacted (${result.reductionPercentage}% reduction) and ${result.lockedInvariants.length} invariants locked`,
+      nextToolRecommendation: `kilo_think_step or kilo_get_skill for workflow execution`,
+    }),
   ].filter(Boolean).join("\n");
 }
 
@@ -465,6 +500,10 @@ export function formatBenchmarkReport(report: BenchmarkReport, format: "markdown
     ...report.recommendations.map((r) => `- ${r}`),
     "",
     `**Suggested Workflow Skills:** ${report.suggestedSkills.map((s) => `\`${s}\``).join(", ")}`,
+    formatObservabilityDirective({
+      justConcluded: `Industry benchmark verdict: ${report.verdict} (${report.summary})`,
+      nextToolRecommendation: `kilo_grill_plan or workflow execution`,
+    }),
   ].join("\n");
 }
 

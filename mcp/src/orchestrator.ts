@@ -372,7 +372,10 @@ function buildNextAction(
   firstSkillToLoad: SkillRecord | undefined,
 ): string {
   if (state === "brainstorming_required") {
-    return "Load productivity/brainstorming with kilo_get_skill, follow its hard-gate, get user approval, then call kilo_orchestrate_task again with brainstormingApproved=true.";
+    return [
+      `1. USER REPORT (MANDATORY): Announce task mode '${session.route.taskMode}' and brainstorming scope to the terminal user.`,
+      `2. Load productivity/brainstorming with kilo_get_skill, follow its hard-gate, get user approval, then call kilo_orchestrate_task again with brainstormingApproved=true.`,
+    ].join("\n");
   }
   if (state === "awaiting_memory_confirmation") {
     return `Accept or reject memory suggestions before execution: ${pendingSuggestions.map((item) => item.key).join(", ")}.`;
@@ -387,7 +390,9 @@ function buildNextAction(
     return [
       `[GATE 2: COGNITIVE REASONING GATE]`,
       `Brainstorming approved. You MUST execute cognitive reasoning before modifying code:`,
-      `- Call ${toolList} with sessionId: "${session.sessionId}".`,
+      `1. USER REPORT (MANDATORY): Output a 1-sentence [NEXT] update to the terminal user describing what 3 options you are analyzing.`,
+      `2. Call ${toolList} with sessionId: "${session.sessionId}".`,
+      `3. USER REPORT (MANDATORY): Announce the chosen option and key rationale before issuing the next tool call.`,
       `- If you inspected >4 files, call \`kilo_compact_context\` with sessionId: "${session.sessionId}" to lock architectural invariants [INVARIANT].`,
       `- For complex features, call \`kilo_benchmark_solution\` with sessionId: "${session.sessionId}" to audit against industry standards.`,
     ].join("\n");
@@ -401,7 +406,8 @@ function buildNextAction(
         .join("\n");
       return [
         `[GATE 3 -> GATE 4 -> GATE 5: READY TO EXECUTE]`,
-        `1. GATE 3 (SKILL DELIVERY & SUPERVISOR CHECK):`,
+        `1. GATE 3 (SKILL DELIVERY & USER REPORT):`,
+        `   -> USER REPORT (MANDATORY): Announce finalized plan & chosen approach to user terminal before coding.`,
         `   -> Load workflow skill(s) before coding: Call \`kilo_get_skill\` with skill "${workflow[0]?.skill.id}" and sessionId "${session.sessionId}".`,
         `   -> (Optional) Call \`kilo_sentinel_status\` with sessionId "${session.sessionId}" to inspect supervisor telemetry.`,
         `2. GATE 4 (SURGICAL IMPLEMENTATION):`,

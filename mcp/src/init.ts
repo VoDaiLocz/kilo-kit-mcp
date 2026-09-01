@@ -144,6 +144,12 @@ Applies to: ${target.displayName}, Antigravity, Gemini CLI, Claude Code, OpenAI 
    - **Dimension 3 (UX & Aesthetics):** Verify responsive layout and mobile touch safety (\`design/aesthetic\`, \`design/mobile-design\`).
    - **Dimension 4 (Empirical & Playwright):** Run compile/build commands AND execute tests before claiming completion.
    - **Continuous Reflection:** Call \`kilo_record_reflection\` with sessionId to persist lessons learned into SQLite memory.
+
+### 📢 MANDATORY INTER-TOOL NARRATION (ZERO SILENT CHAINS):
+- **Iron Law:** NEVER execute consecutive tool calls without printing a 1-2 sentence intermediate update directly to the user. The terminal user CANNOT inspect internal MCP return payloads.
+- **Micro-Narration Protocol before issuing next tool call:**
+  - \`[DECISION]:\` State what you just concluded, selected, or verified cụ thể.
+  - \`[NEXT]:\` State what tool you are calling next and for what purpose.
 ${END_MARKER}
 `;
 }
