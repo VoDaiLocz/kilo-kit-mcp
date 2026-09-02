@@ -167,6 +167,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         ...(answers ? { answers } : {}),
         ...(memoryConfirmations ? { memoryConfirmations } : {}),
       });
+      sentinel.recordPostExecution({
+        sessionId: result.sessionId,
+        toolName: "kilo_orchestrate_task",
+        args: { taskMode: result.taskMode, state: result.state },
+        success: true,
+        durationMs: 5,
+        summary: `Orchestrated session '${result.sessionId}' in state '${result.state}' (${result.taskMode})`,
+      });
       return textResponse(formatOrchestration(result, normalizeFormat(format)));
     },
   );
@@ -185,7 +193,17 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ format }) => textResponse(formatMemoryReport(orchestrationMemory.report(), normalizeFormat(format))),
+    async ({ format }) => {
+      sentinel.recordPostExecution({
+        sessionId: "global",
+        toolName: "kilo_memory_report",
+        args: {},
+        success: true,
+        durationMs: 5,
+        summary: "Memory report generated from SQLite",
+      });
+      return textResponse(formatMemoryReport(orchestrationMemory.report(), normalizeFormat(format)));
+    },
   );
 
   server.registerTool(
@@ -237,6 +255,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         ...(skillsEvaluated ? { skillsEvaluated } : {}),
         lessonsLearned,
         ...(sessionId ? { sessionId } : {}),
+      });
+      sentinel.recordPostExecution({
+        sessionId: record.sessionId || record.id,
+        toolName: "kilo_record_reflection",
+        args: { taskMode: record.taskMode, taskSummary: record.taskSummary },
+        success: true,
+        durationMs: 5,
+        summary: `Reflection recorded: ${record.lessonsLearned.slice(0, 100)}`,
       });
       if (format === "json") {
         return textResponse(JSON.stringify(record, null, 2));
@@ -292,6 +318,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         value,
         confidence: confidence ?? 1.0,
         source: source ?? "user-instruction",
+      });
+      sentinel.recordPostExecution({
+        sessionId: "global",
+        toolName: "kilo_remember_fact",
+        args: { key, kind },
+        success: true,
+        durationMs: 5,
+        summary: `Fact '${key}' (${kind}) stored in SQLite`,
       });
       const res = {
         key,
@@ -379,6 +413,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, `skill:${loaded.skill.id}`);
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_get_skill",
+          args: { skill, category },
+          success: true,
+          durationMs: 5,
+          summary: `Loaded skill '${loaded.skill.id}'`,
+        });
       }
       return textResponse(formatLoadedSkill(loaded, normalizeFormat(format)));
     },
@@ -958,6 +1000,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         verificationGuidance,
         keywords,
       });
+      sentinel.recordPostExecution({
+        sessionId: "global",
+        toolName: "kilo_synthesize_skill",
+        args: { skillName, category },
+        success: true,
+        durationMs: 50,
+        summary: `Synthesized skill '${result.skillId}' into registry`,
+      });
       return textResponse(formatSynthesizeSkill(result, normalizeFormat(format)));
     },
   );
@@ -980,6 +1030,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     async ({ sessionId, format }) => {
       const status = sentinel.getStatus(sessionId);
+      if (sessionId) {
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_sentinel_status",
+          args: {},
+          success: true,
+          durationMs: 2,
+          summary: `Supervisor telemetry: Circuit is ${status.circuitState}, Failure Streak: ${status.consecutiveFailures}`,
+        });
+      }
       return textResponse(formatSentinelStatus(status, normalizeFormat(format)));
     },
   );
@@ -1003,6 +1063,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     async ({ sessionId, justification, format }) => {
       const status = sentinel.resetCircuit(sessionId, justification);
+      sentinel.recordPostExecution({
+        sessionId,
+        toolName: "kilo_reset_circuit_breaker",
+        args: { justification },
+        success: true,
+        durationMs: 5,
+        summary: `Circuit reset to ${status.circuitState}: ${justification.slice(0, 100)}`,
+      });
       return textResponse(formatSentinelStatus(status, normalizeFormat(format)));
     },
   );
