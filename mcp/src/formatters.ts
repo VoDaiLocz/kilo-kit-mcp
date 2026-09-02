@@ -285,45 +285,66 @@ export function formatMemoryReport(report: MemoryReport, format: "markdown" | "j
     return JSON.stringify(report, null, 2);
   }
 
+  const reflections =
+    report.reflections && report.reflections.length > 0
+      ? report.reflections
+          .slice(0, 10)
+          .map(
+            (r, i) =>
+              `${i + 1}. **[${r.taskMode}]** \`${r.id.slice(0, 8)}\` — *${r.taskSummary.slice(0, 70)}*\n` +
+              `   💡 **Lesson:** ${r.lessonsLearned.slice(0, 160)}${r.lessonsLearned.length > 160 ? "..." : ""}\n` +
+              `   ✅ **Correct Approach:** ${r.correctApproach.slice(0, 100)}\n` +
+              (r.wrongPathsEncountered && r.wrongPathsEncountered.length > 0
+                ? `   ❌ **Avoided:** ${r.wrongPathsEncountered.slice(0, 2).join("; ")}\n`
+                : ""),
+          )
+          .join("\n")
+      : "- No learning reflections recorded.";
+
   const facts =
     report.facts.length > 0
       ? report.facts
           .slice(0, 20)
-          .map((fact) => `- \`${fact.key}\` (${fact.kind}, confidence ${fact.confidence}) from ${fact.source}`)
+          .map((fact) => `- \`${fact.key}\` (${fact.kind}, confidence ${Math.round(fact.confidence * 100)}%) from ${fact.source}`)
           .join("\n")
       : "- No memory facts recorded.";
   const decisions =
     report.decisions.length > 0
-      ? report.decisions.map((decision) => `- \`${decision.suggestionKey}\`: ${decision.decision}`).join("\n")
+      ? report.decisions.map((decision) => `- \`${decision.suggestionKey}\`: **${decision.decision}**${decision.reason ? ` (${decision.reason})` : ""}`).join("\n")
       : "- No memory decisions recorded.";
   const sessions =
     report.sessions.length > 0
       ? report.sessions
           .slice(0, 10)
-          .map((session) => `- \`${session.id}\`: ${session.state} (${session.taskMode})`)
+          .map((session) => `- \`${session.id.slice(0, 8)}...\`: **${session.state}** [${session.taskMode}] — *${session.message.slice(0, 60)}*`)
           .join("\n")
       : "- No orchestration sessions recorded.";
   const outcomes =
     report.outcomes.length > 0
       ? report.outcomes
           .slice(0, 10)
-          .map((outcome) => `- \`${outcome.id}\`: ${outcome.outcome} (${outcome.taskMode})`)
+          .map((outcome) => `- \`${outcome.id.slice(0, 8)}...\`: **${outcome.outcome}** [${outcome.taskMode}]`)
           .join("\n")
       : "- No workflow outcomes recorded.";
 
   return [
-    "# Kilo-Kit Memory Report",
+    "# 🧠 Kilo-Kit SQLite Memory & Knowledge Base Report",
     "",
-    "## Facts",
+    `Total Stored Knowledge: **${report.reflections?.length || 0} reflections**, **${report.facts.length} facts**, **${report.decisions.length} decisions**, **${report.sessions.length} sessions**, **${report.outcomes.length} outcomes**.`,
+    "",
+    "## 💡 Top Learning Reflections (Past Lessons)",
+    reflections,
+    "",
+    "## 📌 Stored Facts & Policies",
     facts,
     "",
-    "## Decisions",
+    "## ⚖️ User & Architecture Decisions",
     decisions,
     "",
-    "## Sessions",
+    "## 🔄 Recent Orchestration Sessions",
     sessions,
     "",
-    "## Outcomes",
+    "## 🏁 Released Workflow Outcomes",
     outcomes,
   ].join("\n");
 }

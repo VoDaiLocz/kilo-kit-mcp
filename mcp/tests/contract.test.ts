@@ -5,18 +5,19 @@ import { createKiloKitServer } from "../src/server.js";
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 describe("Kilo-Kit MCP Contract & Discovery Snapshot", () => {
-  it("initializes MCP server and registers all 22 tools", async () => {
+  it("initializes MCP server and registers all 23 tools", async () => {
     const server = await createKiloKitServer({ repoRoot });
     expect(server).toBeDefined();
 
     // Check registered tools count and names
     const registeredTools: string[] = Object.keys((server as any)._registeredTools ?? {});
-    expect(registeredTools.length).toBe(22);
+    expect(registeredTools.length).toBe(23);
 
     const expectedTools = [
       "kilo_orchestrate_task",
       "kilo_memory_report",
       "kilo_record_reflection",
+      "kilo_remember_fact",
       "kilo_search_skills",
       "kilo_get_skill",
       "kilo_route_intent",

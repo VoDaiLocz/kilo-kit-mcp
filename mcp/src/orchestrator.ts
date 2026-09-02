@@ -85,7 +85,7 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
       }
       const suggestions = ensureMemorySuggestions(options.memory, session);
       const pendingSuggestions = suggestions.filter(
-        (suggestion) => session.memoryConfirmations[suggestion.key] === undefined,
+        (suggestion) => suggestion.requiresConfirmation && session.memoryConfirmations[suggestion.key] === undefined,
       );
       const state = selectState(session, pendingSuggestions);
       if (state === "brainstorming_required") {
@@ -119,7 +119,7 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
       const missingInfo: string[] = [];
       const suggestions = ensureMemorySuggestions(options.memory, session);
       const pendingSuggestions = suggestions.filter(
-        (suggestion) => session.memoryConfirmations[suggestion.key] === undefined,
+        (suggestion) => suggestion.requiresConfirmation && session.memoryConfirmations[suggestion.key] === undefined,
       );
       const acceptedSuggestions = suggestions.filter(
         (suggestion) => session.memoryConfirmations[suggestion.key] === "accepted",

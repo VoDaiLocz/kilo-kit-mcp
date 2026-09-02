@@ -237,6 +237,15 @@ export async function createSqliteOrchestrationMemory(
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_katl_checkpoints_session ON katl_checkpoints(session_id, created_at);
+
+    CREATE INDEX IF NOT EXISTS idx_learning_reflections_mode_time ON learning_reflections(task_mode, created_at);
+    CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_state_time ON orchestration_sessions(state, created_at);
+    CREATE INDEX IF NOT EXISTS idx_workflow_outcomes_session ON workflow_outcomes(session_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_memory_facts_kind ON memory_facts(kind);
+    CREATE INDEX IF NOT EXISTS idx_memory_decisions_key ON memory_decisions(suggestion_key);
+
+    PRAGMA journal_mode = WAL;
+    PRAGMA synchronous = NORMAL;
   `);
 
   return {

@@ -76,13 +76,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       : process.cwd();
   const registry = await createSkillRegistry({ repoRoot });
   const routeAnalytics =
-    process.env.KILO_KIT_WRITE_DECISIONS === "true"
-      ? createJsonlRouteAnalytics({
+    process.env.KILO_KIT_WRITE_DECISIONS === "false"
+      ? createInMemoryRouteAnalytics()
+      : createJsonlRouteAnalytics({
           filePath: process.env.KILO_KIT_DECISION_TRAIL_PATH
             ? path.resolve(process.env.KILO_KIT_DECISION_TRAIL_PATH)
-            : resolveInsideRepo(repoRoot, ".kilo/decision-trail.jsonl"),
-        })
-      : createInMemoryRouteAnalytics();
+            : path.join(os.homedir(), ".kilo-kit/decision-trail.jsonl"),
+        });
   const orchestrationMemory = await createSqliteOrchestrationMemory({
     filePath: path.resolve(process.env.KILO_KIT_MEMORY_PATH ?? path.join(os.homedir(), ".kilo-kit/orchestrator.sqlite")),
   });
@@ -257,11 +257,68 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           "## Wrong Paths Avoided",
           record.wrongPathsEncountered.map((p: string) => `- ❌ ${p}`).join("\n") || "- None",
           "",
-          "## Lessons Learned",
           record.lessonsLearned,
           "",
           "Saved to SQLite memory for future autonomous retrieval.",
         ].join("\n"),
+      );
+    },
+  );
+
+  server.registerTool(
+    "kilo_remember_fact",
+    {
+      title: "Remember Architecture & Policy Fact",
+      description:
+        "Explicitly persist a project operating rule, workflow default, or verification standard into SQLite memory_facts for cross-session enforcement.",
+      inputSchema: {
+        key: z.string().min(3).max(120).describe("Unique fact identifier, e.g. 'preference:testing:vitest' or 'rule:architecture:dexie'."),
+        kind: z.enum(["verification-default", "workflow-default", "task-mode-default", "operating-rule"]).describe("Fact classification kind."),
+        value: z.record(z.unknown()).describe("Fact payload data, e.g. { commands: ['npm test'] } or { library: 'dexie' }."),
+        confidence: z.number().min(0).max(1).optional().describe("Confidence score between 0.0 and 1.0 (default 1.0)."),
+        source: z.string().optional().describe("Source of fact (e.g. 'user-instruction', 'architecture-decision')."),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+      },
+    },
+    async ({ key, kind, value, confidence, source, format }) => {
+      orchestrationMemory.rememberFact({
+        key,
+        kind,
+        value,
+        confidence: confidence ?? 1.0,
+        source: source ?? "user-instruction",
+      });
+      const res = {
+        key,
+        kind,
+        value,
+        confidence: confidence ?? 1.0,
+        source: source ?? "user-instruction",
+        status: "saved",
+      };
+      if (format === "json") return textResponse(JSON.stringify(res, null, 2));
+      return textResponse(
+        [
+          `> 🏷️ **Ghi nhớ Quy tắc / Fact: ${key}**`,
+          "",
+          "# 📌 Fact Remembered in SQLite",
+          "",
+          `- **Key:** \`${key}\``,
+          `- **Kind:** \`${kind}\``,
+          `- **Confidence:** ${Math.round((confidence ?? 1.0) * 100)}%`,
+          `- **Source:** ${source ?? "user-instruction"}`,
+          `- **Payload:**`,
+          "```json",
+          JSON.stringify(value, null, 2),
+          "```",
+          "",
+          "This fact is now permanently stored in `memory_facts` and will be evaluated across all future sessions.",
+        ].join("\n")
       );
     },
   );
