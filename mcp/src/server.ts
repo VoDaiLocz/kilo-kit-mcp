@@ -732,6 +732,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           thoughtLength: thought.trim().length,
           isSuperficial: thought.trim().length < 30 || /^(prepare|ready|next step|file creation|start coding)$/i.test(thought.trim()),
         });
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_think_step",
+          args: { thoughtNumber, totalThoughts, branchId, hypothesis, label },
+          success: true,
+          durationMs: 5,
+          summary: `Thought #${thoughtNumber}/${totalThoughts} recorded: ${thought.slice(0, 100)}`,
+        });
       }
       const output = formatThinkStep(result, normalizeFormat(format));
       const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang làm gì*\n\n`;
@@ -767,6 +775,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
           planLength: plan.trim().length,
           riskScore: result.riskScore,
+        });
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_grill_plan",
+          args: { depth, label },
+          success: true,
+          durationMs: 5,
+          summary: `Grill plan completed with verdict ${result.readinessVerdict} (Risk: ${result.riskScore}/100)`,
         });
       }
       const output = formatGrillPlan(result, normalizeFormat(format));
@@ -804,6 +820,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause", {
           errorLogLength: errorLog.trim().length,
         });
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_trace_root_cause",
+          args: { failingFile, label },
+          success: true,
+          durationMs: 5,
+          summary: `Root cause identified: ${result.rootCause}`,
+        });
       }
       const output = formatTraceRootCause(result, normalizeFormat(format));
       const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang truy vết lỗi gì*\n\n`;
@@ -834,6 +858,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       const result = executeCompactContext({ content, preserveInvariants, targetReduction });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, "kilo_compact_context");
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_compact_context",
+          args: { targetReduction, invariantsCount: (preserveInvariants || []).length },
+          success: true,
+          durationMs: 5,
+          summary: `Context compacted by ${result.reductionPercentage}% (${result.originalBytes} -> ${result.compactedBytes} bytes)`,
+        });
       }
       return textResponse(formatCompactContext(result, normalizeFormat(format)));
     },
@@ -938,6 +970,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
     },
     async ({ sessionId, proposedApproach, industryBestPractice, format }) => {
       const report = sentinel.benchmarkSolution(sessionId, proposedApproach, industryBestPractice);
+      if (sessionId) {
+        sentinel.recordPostExecution({
+          sessionId,
+          toolName: "kilo_benchmark_solution",
+          args: { proposedApproach, industryBestPractice },
+          success: true,
+          durationMs: 5,
+          summary: `Benchmark completed with verdict: ${report.verdict} (${report.summary})`,
+        });
+      }
       return textResponse(formatBenchmarkReport(report, normalizeFormat(format)));
     },
   );

@@ -53,7 +53,7 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
       facts.set(fact.key, normalizeFact(fact, facts.get(fact.key)));
     },
     suggest(input) {
-      const produced = buildSuggestions([...facts.values()], input);
+      const produced = buildSuggestions([...facts.values()], reflections, input);
       suggestions.splice(0, suggestions.length, ...produced.map(clone));
       return produced;
     },
@@ -266,7 +266,7 @@ export async function createSqliteOrchestrationMemory(
         );
     },
     suggest(input) {
-      return buildSuggestions(allFacts(database), input);
+      return buildSuggestions(allFacts(database), allReflections(database), input);
     },
     recordDecision(decision) {
       database
@@ -490,8 +490,12 @@ export async function createSqliteOrchestrationMemory(
   };
 }
 
-function buildSuggestions(facts: MemoryFact[], input: MemorySuggestionInput): MemorySuggestion[] {
-  return facts
+function buildSuggestions(
+  facts: MemoryFact[],
+  reflections: LearningReflectionRecord[] = [],
+  input: MemorySuggestionInput,
+): MemorySuggestion[] {
+  const factSuggestions = facts
     .filter((fact) => fact.confidence >= 0.7)
     .filter((fact) => factApplies(fact, input))
     .map((fact) => ({
@@ -503,6 +507,36 @@ function buildSuggestions(facts: MemoryFact[], input: MemorySuggestionInput): Me
       requiresConfirmation: true,
       applied: false,
     }));
+
+  const reflectionSuggestions: MemorySuggestion[] = reflections
+    .filter((r) => r.lessonsLearned && r.lessonsLearned.trim().length > 0)
+    .filter((r) => !input.taskMode || r.taskMode === input.taskMode || r.taskMode === "general")
+    .slice(0, 3)
+    .map((r) => {
+      const shortSummary = r.taskSummary ? r.taskSummary.slice(0, 60) : "Previous session";
+      const key = `lesson:${r.taskMode}:${r.id.slice(0, 8)}`;
+      const avoids =
+        r.wrongPathsEncountered && r.wrongPathsEncountered.length > 0
+          ? ` Cần tránh: ${r.wrongPathsEncountered.slice(0, 2).join("; ")}.`
+          : "";
+      return {
+        key,
+        title: `💡 [Bài học kinh nghiệm] ${shortSummary}`,
+        reason: `Bài học từ phiên trước: "${r.lessonsLearned.slice(0, 160)}${r.lessonsLearned.length > 160 ? "..." : ""}". Phương pháp đúng: "${r.correctApproach.slice(0, 100)}".${avoids}`,
+        value: {
+          reflectionId: r.id,
+          taskMode: r.taskMode,
+          lessonsLearned: r.lessonsLearned,
+          correctApproach: r.correctApproach,
+          wrongPathsEncountered: r.wrongPathsEncountered,
+        },
+        confidence: 0.95,
+        requiresConfirmation: false,
+        applied: true,
+      };
+    });
+
+  return [...factSuggestions, ...reflectionSuggestions];
 }
 
 function factApplies(fact: MemoryFact, input: MemorySuggestionInput): boolean {
