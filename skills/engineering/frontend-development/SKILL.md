@@ -113,6 +113,11 @@ import type { Post } from '~types/post';
 - Use SuspenseLoader component (with fade animation)
 - Component structure: Props → Hooks → Handlers → Render → Export
 
+**CRITICAL RULE: UI RESEARCH HARD-GATE**
+Before creating any user-facing component or page, you MUST run a Subagent to research real-world UI patterns.
+- Call `invoke_subagent` (research) with instructions to search Awwwards/ThreeUI for specific context keywords (e.g., "SaaS Dashboard").
+- Do not invent color palettes or layouts blindly. Use the exact Tailwind/MUI theme variables returned by the Subagent's visual analysis report.
+
 **[📖 Complete Guide: resources/component-patterns.md](resources/component-patterns.md)**
 
 ---

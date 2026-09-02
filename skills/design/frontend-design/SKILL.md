@@ -40,3 +40,17 @@ Interpret creatively and make unexpected choices that feel genuinely designed fo
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 
 Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+
+## Subagent UI Research Integration (The Awwwards/ThreeUI Flow)
+
+Before committing to an aesthetic direction or writing code, **YOU MUST** delegate UI research to a subagent to extract high-quality, real-world design patterns from top-tier inspiration galleries. 
+
+1. **Invoke the Subagent**:
+   Call the `invoke_subagent` tool with a `research` type agent.
+   **Prompt for Subagent**: "Vào trang threeui.com, awwwards.com, hoặc godly.website. BẮT BUỘC KHÔNG lấy mẫu ngẫu nhiên ở trang chủ. Bạn phải trích xuất bối cảnh hiện tại (ví dụ: 'E-commerce Checkout', 'SaaS Analytics Dashboard', 'Healthcare Portal') và SỬ DỤNG THANH TÌM KIẾM (Search) của trang web để tìm ĐÚNG mẫu UI khớp 100% với bối cảnh. Sau khi lọc kết quả, hãy dùng công cụ chụp ảnh và ai-multimodal để phân tích sâu về: 1) Bảng màu (Hex codes), 2) Typography (Tên font, size, weight), 3) Cấu trúc Layout Grid, 4) Micro-interactions. Viết báo cáo chi tiết kèm Tailwind config để Main Agent implement."
+   
+2. **Subagent Execution (Playwright + Multimodal)**:
+   The subagent will use `playwright` to scrape the galleries or capture screenshots, and use the `ai-multimodal` skill with Gemini Vision to synthesize a highly accurate, beautiful UI specification.
+
+3. **Incorporate Findings**:
+   Once the subagent returns the `DESIGN_GUIDELINE.md` or the synthesis report, you must strictly follow its exact color hex codes, spacing variables, and layout structures to implement the frontend. Do not invent generic AI designs; ground your implementation in the subagent's researched evidence.

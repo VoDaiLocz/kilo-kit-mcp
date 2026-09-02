@@ -190,14 +190,21 @@ Covers:
 - Layer organization (@layer base, components, utilities)
 - Apply directive for component extraction
 
-## Visual Design System
+## Visual Design System & UI Research
 
 **Canvas-based design philosophy, visual communication principles, and sophisticated compositions.**
+
+**CRITICAL RULE: SUBAGENT UI RESEARCH**
+Before applying any Tailwind styling or defining a new component's visual language, you **MUST** spawn a research subagent to scrape contextual UI patterns from high-end galleries (Awwwards, ThreeUI). 
+- Do not invent generic color palettes.
+- Do not blindly copy homepages. 
+- Prompt the subagent to use **Search keywords** (e.g., "SaaS Admin", "E-commerce Cart") to extract accurate Tailwind Hex codes, spacing, and micro-interactions.
 
 See: `references/canvas-design-system.md`
 
 Covers:
 - Design philosophy approach
+- Subagent contextual UI scraping (Playwright + Multimodal Vision)
 - Visual communication over text
 - Systematic patterns and composition
 - Color, form, and spatial design
