@@ -15,6 +15,7 @@ import {
   executeSynthesizeSkill,
   executeThinkStep,
   executeTraceRootCause,
+  executeTriangulateResearch,
 } from "./cognitive-tools.js";
 import {
   executeEditFile,
@@ -26,6 +27,7 @@ import {
 } from "./execution-tools.js";
 import {
   formatBenchmarkReport,
+  formatCognitiveTriangulation,
   formatCompactContext,
   formatEditFile,
   formatGrepCode,
@@ -1106,6 +1108,88 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         });
       }
       return textResponse(formatBenchmarkReport(report, normalizeFormat(format)));
+    },
+  );
+
+  server.registerTool(
+    "kilo_triangulate_research",
+    {
+      title: "Grounded Cognitive Triangulation & Low-Confidence Escalator",
+      description:
+        "Execute Triangulated Cognitive Synthesis: Combines Internal SQLite Memory, External GitHub Grounding, 3-Option ToT DAG Trade-Offs, and Low-Confidence Research Escalation. Persists reasoning atomically into SQLite before code modification.",
+      inputSchema: {
+        sessionId: z.string().min(1).describe("Active Kilo-Kit session ID"),
+        taskDescription: z.string().min(10).describe("The architectural decision, feature spec, or bug to analyze"),
+        internalMemoryLearned: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .describe("Key facts, reflections, or past pitfalls retrieved from SQLite"),
+        externalGroundingPatterns: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .describe("Standard patterns, official docs, or 10k+ stars GitHub implementations"),
+        dagOptions: z
+          .array(
+            z.object({
+              name: z.string().min(1).describe("Option name (e.g. 'Option A: In-Memory Map', 'Option B: Full LangGraph Port', 'Option C: SQLite Grounded Synthesis')"),
+              description: z.string().min(5).describe("Detailed architecture and mechanism"),
+              pros: z.array(z.string()).min(1).describe("Advantages and strengths"),
+              cons: z.array(z.string()).min(1).describe("Disadvantages, dependencies, or trade-offs"),
+              blastRadius: z.string().optional().describe("Impact on existing codebase and state"),
+            }),
+          )
+          .min(2)
+          .describe("At least 2 (ideally 3) competing architectural options to compare"),
+        chosenOption: z.string().min(1).describe("The selected option name with rationale"),
+        confidenceScore: z.number().min(0).max(1).describe("Confidence score between 0.0 and 1.0 (if < 0.70, triggers research escalation)"),
+        requiresResearchEscalation: z.boolean().optional().describe("Explicitly request deep subagent research fallback"),
+        researchFindings: z.string().optional().describe("Synthesized findings from research subagent if research escalation was triggered"),
+        adversarialRiskScore: z.number().min(0).max(100).optional().describe("Adversarial risk score from red-team grilling"),
+        format: formatSchema.optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+      },
+    },
+    async ({
+      sessionId,
+      taskDescription,
+      internalMemoryLearned,
+      externalGroundingPatterns,
+      dagOptions,
+      chosenOption,
+      confidenceScore,
+      requiresResearchEscalation,
+      researchFindings,
+      adversarialRiskScore,
+      format,
+    }) => {
+      const result = executeTriangulateResearch(orchestrationMemory, {
+        sessionId,
+        taskDescription,
+        internalMemoryLearned,
+        externalGroundingPatterns,
+        dagOptions,
+        chosenOption,
+        confidenceScore,
+        requiresResearchEscalation,
+        researchFindings,
+        adversarialRiskScore,
+      });
+
+      orchestrator.recordCognitiveTool(sessionId, "kilo_triangulate_research");
+      sentinel.recordPostExecution({
+        sessionId,
+        toolName: "kilo_triangulate_research",
+        args: { chosenOption, confidenceScore, escalationTriggered: result.record.escalationTriggered },
+        success: true,
+        durationMs: 10,
+        summary: `Cognitive Triangulation committed to SQLite: '${chosenOption}' (Confidence: ${Math.round(confidenceScore * 100)}%, Escalation: ${result.record.escalationTriggered ? "YES" : "NO"})`,
+      });
+
+      return textResponse(formatCognitiveTriangulation(result, normalizeFormat(format)));
     },
   );
 

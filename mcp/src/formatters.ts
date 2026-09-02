@@ -528,3 +528,63 @@ export function formatBenchmarkReport(report: BenchmarkReport, format: "markdown
   ].join("\n");
 }
 
+export function formatCognitiveTriangulation(
+  result: import("./cognitive-tools.js").TriangulateResearchResult,
+  format: "markdown" | "json",
+): string {
+  if (format === "json") return JSON.stringify(result, null, 2);
+  const rec = result.record;
+  const confPct = Math.round(rec.confidenceScore * 100);
+  const confIcon = rec.confidenceScore >= 0.85 ? "🟢 HIGH" : rec.confidenceScore >= 0.7 ? "🟡 MODERATE" : "🔴 LOW (ESCALATION)";
+
+  const lines = [
+    `# 📐 Cognitive Triangulation & Grounded Synthesis`,
+    `**Session ID:** \`${rec.sessionId}\` | **Record ID:** \`${rec.id}\``,
+    `**Confidence Level:** ${confIcon} (${confPct}%)`,
+    `**Chosen Architecture:** \`${rec.chosenOption}\``,
+    "",
+    `> 🎯 **Task Objective:** ${rec.taskDescription}`,
+    "",
+    "## 🧠 1. Internal Memory Recall (SQLite)",
+    rec.internalMemory.length > 0 ? rec.internalMemory.map((m) => `- 💾 ${m}`).join("\n") : "- _No previous internal memory recorded for this pattern._",
+    "",
+    "## 🌐 2. External Grounding (GitHub 10k+ Stars & Official Docs)",
+    rec.externalGrounding.length > 0 ? rec.externalGrounding.map((g) => `- 🔍 ${g}`).join("\n") : "- _No external grounding patterns provided._",
+    "",
+    "## 📊 3. Tree-of-Thoughts DAG Trade-Off Matrix",
+    ...rec.dagOptions.map((opt) =>
+      [
+        `### ${opt.name === rec.chosenOption ? `👉 [SELECTED] ${opt.name}` : opt.name}`,
+        `${opt.description}`,
+        `- **Pros:** ${opt.pros.join(", ")}`,
+        `- **Cons:** ${opt.cons.join(", ")}`,
+        opt.blastRadius ? `- **Blast Radius:** ${opt.blastRadius}` : "",
+        "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    ),
+    rec.adversarialRiskScore !== undefined ? `**Adversarial Risk Score:** ${rec.adversarialRiskScore}/100\n` : "",
+    rec.escalationTriggered
+      ? [
+          "## 🚨 4. Low-Confidence Research Escalation Protocol",
+          `> ⚠️ **ACTION REQUIRED:** Confidence is ${confPct}% (< 70%).`,
+          `> **Directive:** ${result.actionDirective}`,
+          result.recommendedSubagentQuery ? `> **Subagent Query:** \`${result.recommendedSubagentQuery}\`` : "",
+          rec.researchFindings ? `\n### 🔬 Research Subagent Findings:\n${rec.researchFindings}\n` : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : ["## ✅ 4. Execution Directives", `> ${result.actionDirective}`].join("\n"),
+    "",
+    formatObservabilityDirective({
+      justConcluded: `Grounded Triangulation completed for '${rec.chosenOption}' (Confidence: ${confPct}%, Escalation: ${rec.escalationTriggered ? "YES" : "NO"})`,
+      nextToolRecommendation: rec.escalationTriggered
+        ? `invoke_subagent (research) or kilo_get_skill`
+        : `kilo_orchestrate_task (with brainstormingApproved=true) or kilo_get_skill`,
+    }),
+  ];
+
+  return lines.filter(Boolean).join("\n");
+}
+

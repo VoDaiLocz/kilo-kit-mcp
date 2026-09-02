@@ -182,6 +182,42 @@ export interface CheckpointRecord extends CheckpointInput {
   createdAt: string;
 }
 
+export interface DAGOption {
+  name: string;
+  description: string;
+  pros: string[];
+  cons: string[];
+  blastRadius?: string | undefined;
+}
+
+export interface CognitiveTriangulationInput {
+  sessionId: string;
+  taskDescription: string;
+  internalMemoryLearned?: string[] | string | undefined;
+  externalGroundingPatterns?: string[] | string | undefined;
+  dagOptions: DAGOption[];
+  chosenOption: string;
+  confidenceScore: number; // 0.0 to 1.0
+  requiresResearchEscalation?: boolean | undefined;
+  researchFindings?: string | undefined;
+  adversarialRiskScore?: number | undefined;
+}
+
+export interface CognitiveTriangulationRecord {
+  id: string;
+  sessionId: string;
+  taskDescription: string;
+  confidenceScore: number;
+  internalMemory: string[];
+  externalGrounding: string[];
+  dagOptions: DAGOption[];
+  chosenOption: string;
+  escalationTriggered: boolean;
+  researchFindings?: string | undefined;
+  adversarialRiskScore?: number | undefined;
+  createdAt: string;
+}
+
 export interface BenchmarkReport {
   sessionId: string;
   verdict: "ALIGNED" | "REPLAN_TRIGGERED";

@@ -414,3 +414,37 @@ ${input.verificationGuidance}
     message: `Skill '${category}/${sanitizedName}' synthesized successfully. Quality gate passed: ${valid}.`,
   };
 }
+
+export interface TriangulateResearchResult {
+  record: import("./orchestration-types.js").CognitiveTriangulationRecord;
+  confidenceCategory: "HIGH" | "MODERATE" | "LOW_ESCALATION_TRIGGERED";
+  actionDirective: string;
+  recommendedSubagentQuery?: string | undefined;
+}
+
+export function executeTriangulateResearch(
+  memory: import("./orchestration-memory.js").OrchestrationMemoryStore,
+  input: import("./orchestration-types.js").CognitiveTriangulationInput,
+): TriangulateResearchResult {
+  const record = memory.recordTriangulation(input);
+
+  let confidenceCategory: "HIGH" | "MODERATE" | "LOW_ESCALATION_TRIGGERED" = "HIGH";
+  let actionDirective = "Proceed to Gate 3 approval and Gate 4 surgical implementation.";
+  let recommendedSubagentQuery: string | undefined = undefined;
+
+  if (record.confidenceScore < 0.7 || record.escalationTriggered) {
+    confidenceCategory = "LOW_ESCALATION_TRIGGERED";
+    recommendedSubagentQuery = `Research standard patterns, official documentation, and 10k+ stars GitHub implementations for: ${input.taskDescription}`;
+    actionDirective = `⚠️ LOW CONFIDENCE ESCALATION TRIGGERED (Confidence: ${Math.round(record.confidenceScore * 100)}% < 70%). MUST invoke research subagent or query external docs before approving Gate 3.`;
+  } else if (record.confidenceScore < 0.85) {
+    confidenceCategory = "MODERATE";
+    actionDirective = "Confidence is moderate (70-84%). Ensure adversarial red-team grilling passes before code modification.";
+  }
+
+  return {
+    record,
+    confidenceCategory,
+    actionDirective,
+    recommendedSubagentQuery,
+  };
+}

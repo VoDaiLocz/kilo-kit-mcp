@@ -5,6 +5,9 @@ import { randomUUID } from "node:crypto";
 import type {
   CheckpointInput,
   CheckpointRecord,
+  CognitiveTriangulationInput,
+  CognitiveTriangulationRecord,
+  DAGOption,
   LearningReflectionInput,
   LearningReflectionRecord,
   MemoryDecision,
@@ -31,6 +34,8 @@ export interface OrchestrationMemoryStore {
   getTrajectories(sessionId: string, limit?: number): TrajectoryRecord[];
   recordCheckpoint(checkpoint: CheckpointInput): CheckpointRecord;
   getCheckpoints(sessionId: string): CheckpointRecord[];
+  recordTriangulation(triangulation: CognitiveTriangulationInput): CognitiveTriangulationRecord;
+  getTriangulations(sessionId: string): CognitiveTriangulationRecord[];
   report(): MemoryReport;
 }
 
@@ -47,6 +52,7 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
   const reflections: LearningReflectionRecord[] = [];
   const trajectories: TrajectoryRecord[] = [];
   const checkpoints: CheckpointRecord[] = [];
+  const triangulations: CognitiveTriangulationRecord[] = [];
 
   return {
     rememberFact(fact) {
@@ -133,6 +139,40 @@ export function createInMemoryOrchestrationMemory(initialFacts: MemoryFact[] = [
     getCheckpoints(sessionId) {
       return checkpoints
         .filter((c) => c.sessionId === sessionId)
+        .map(clone);
+    },
+    recordTriangulation(triangulation) {
+      const internalMemory = Array.isArray(triangulation.internalMemoryLearned)
+        ? triangulation.internalMemoryLearned
+        : triangulation.internalMemoryLearned
+          ? [triangulation.internalMemoryLearned]
+          : [];
+      const externalGrounding = Array.isArray(triangulation.externalGroundingPatterns)
+        ? triangulation.externalGroundingPatterns
+        : triangulation.externalGroundingPatterns
+          ? [triangulation.externalGroundingPatterns]
+          : [];
+      const record: CognitiveTriangulationRecord = {
+        id: randomUUID(),
+        sessionId: triangulation.sessionId,
+        taskDescription: triangulation.taskDescription,
+        confidenceScore: triangulation.confidenceScore,
+        internalMemory,
+        externalGrounding,
+        dagOptions: clone(triangulation.dagOptions),
+        chosenOption: triangulation.chosenOption,
+        escalationTriggered: Boolean(triangulation.requiresResearchEscalation || triangulation.confidenceScore < 0.7),
+        researchFindings: triangulation.researchFindings,
+        adversarialRiskScore: triangulation.adversarialRiskScore,
+        createdAt: new Date().toISOString(),
+      };
+      triangulations.push(record);
+      return clone(record);
+    },
+    getTriangulations(sessionId) {
+      return triangulations
+        .filter((t) => t.sessionId === sessionId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map(clone);
     },
     report() {
@@ -237,6 +277,22 @@ export async function createSqliteOrchestrationMemory(
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_katl_checkpoints_session ON katl_checkpoints(session_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS cognitive_triangulations (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      task_description TEXT NOT NULL,
+      confidence_score REAL NOT NULL,
+      internal_memory_json TEXT NOT NULL,
+      external_grounding_json TEXT NOT NULL,
+      dag_options_json TEXT NOT NULL,
+      chosen_option TEXT NOT NULL,
+      escalation_triggered INTEGER NOT NULL DEFAULT 0,
+      research_findings TEXT,
+      adversarial_risk_score REAL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cognitive_triangulations_session ON cognitive_triangulations(session_id, created_at);
 
     CREATE INDEX IF NOT EXISTS idx_learning_reflections_mode_time ON learning_reflections(task_mode, created_at);
     CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_state_time ON orchestration_sessions(state, created_at);
@@ -483,6 +539,90 @@ export async function createSqliteOrchestrationMemory(
         groundedFiles: JSON.parse(r.grounded_files_json || "[]") as string[],
         circuitBreakerState: r.circuit_breaker_state,
         metadata: r.metadata_json ? (JSON.parse(r.metadata_json) as Record<string, unknown>) : undefined,
+        createdAt: r.created_at,
+      }));
+    },
+    recordTriangulation(triangulation) {
+      const id = randomUUID();
+      const createdAt = new Date().toISOString();
+      const internalMemory = Array.isArray(triangulation.internalMemoryLearned)
+        ? triangulation.internalMemoryLearned
+        : triangulation.internalMemoryLearned
+          ? [triangulation.internalMemoryLearned]
+          : [];
+      const externalGrounding = Array.isArray(triangulation.externalGroundingPatterns)
+        ? triangulation.externalGroundingPatterns
+        : triangulation.externalGroundingPatterns
+          ? [triangulation.externalGroundingPatterns]
+          : [];
+      const escalationTriggered = Boolean(
+        triangulation.requiresResearchEscalation || triangulation.confidenceScore < 0.7,
+      );
+
+      database
+        .prepare(
+          `INSERT INTO cognitive_triangulations
+             (id, session_id, task_description, confidence_score, internal_memory_json, external_grounding_json, dag_options_json, chosen_option, escalation_triggered, research_findings, adversarial_risk_score, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          triangulation.sessionId,
+          triangulation.taskDescription,
+          triangulation.confidenceScore,
+          JSON.stringify(internalMemory),
+          JSON.stringify(externalGrounding),
+          JSON.stringify(triangulation.dagOptions),
+          triangulation.chosenOption,
+          escalationTriggered ? 1 : 0,
+          triangulation.researchFindings ?? null,
+          triangulation.adversarialRiskScore ?? null,
+          createdAt,
+        );
+
+      return {
+        id,
+        sessionId: triangulation.sessionId,
+        taskDescription: triangulation.taskDescription,
+        confidenceScore: triangulation.confidenceScore,
+        internalMemory,
+        externalGrounding,
+        dagOptions: clone(triangulation.dagOptions),
+        chosenOption: triangulation.chosenOption,
+        escalationTriggered,
+        researchFindings: triangulation.researchFindings,
+        adversarialRiskScore: triangulation.adversarialRiskScore,
+        createdAt,
+      };
+    },
+    getTriangulations(sessionId) {
+      const stmt = database.prepare("SELECT * FROM cognitive_triangulations WHERE session_id = ? ORDER BY created_at DESC");
+      const rows = (stmt.all as (...args: unknown[]) => unknown[])(sessionId) as unknown as Array<{
+        id: string;
+        session_id: string;
+        task_description: string;
+        confidence_score: number;
+        internal_memory_json: string;
+        external_grounding_json: string;
+        dag_options_json: string;
+        chosen_option: string;
+        escalation_triggered: number;
+        research_findings: string | null;
+        adversarial_risk_score: number | null;
+        created_at: string;
+      }>;
+      return rows.map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        taskDescription: r.task_description,
+        confidenceScore: r.confidence_score,
+        internalMemory: JSON.parse(r.internal_memory_json || "[]") as string[],
+        externalGrounding: JSON.parse(r.external_grounding_json || "[]") as string[],
+        dagOptions: JSON.parse(r.dag_options_json || "[]") as DAGOption[],
+        chosenOption: r.chosen_option,
+        escalationTriggered: Boolean(r.escalation_triggered),
+        researchFindings: r.research_findings ?? undefined,
+        adversarialRiskScore: r.adversarial_risk_score ?? undefined,
         createdAt: r.created_at,
       }));
     },
