@@ -45,138 +45,55 @@ Kilo-Kit is an agentic MCP runtime and curated 180-skill catalog designed to enf
 Kilo-Kit enforces a strict architectural boundary between **High-Level Cognitive Reasoning (Cortex)** and **Surgical I/O Execution (Limbs)**:
 
 ```mermaid
-flowchart TB
-    subgraph HostClients["🖥️ Host AI Clients & Environments"]
-        CC["Claude Code"]
-        AG["Antigravity CLI"]
-        CUR["Cursor / Windsurf"]
-        GEM["Gemini CLI"]
-        OC["OpenCode / Codex"]
+flowchart TD
+    Clients["🖥️ Host AI Clients<br/>(Claude Code / Antigravity / Cursor / Gemini CLI)"]
+    
+    Sentinel["🛡️ Kilo-Sentinel Supervisor & Circuit Breaker<br/>(Pre-flight Grounding Lock • Loop Tripwire • Step Budget)"]
+    
+    subgraph Cortex["🧠 Kilo-Kit Cognitive Cortex (MCP Runtime)"]
+        direction TB
+        C4["🏛️ C4 5-Gate Lifecycle Controller"]
+        Engines["⚙️ 6 Cognitive Engines<br/>(ToT DAG • Adversarial Grill • 5-Whys • Grounded Synthesis)"]
+        Skills["📚 180 Curated Skills Catalog"]
+        Limbs["🛠️ Safe Execution Limbs<br/>(Atomic Write • AST Edit • Security Filtered Exec)"]
+        C4 --> Engines
+        C4 --> Skills
+        C4 --> Limbs
     end
-
-    subgraph SupervisorLayer["🛡️ Kilo-Sentinel Supervisor & Circuit Breaker"]
-        Tripwire["Loop & Thrashing Tripwire\n(Identical Call / Edit Churn)"]
-        PreFlight["Pre-flight Grounding Lock\n(Read-before-Write Invariant)"]
-        Breaker["Circuit Breaker Engine\n(CLOSED / HALF_OPEN / OPEN)"]
-    end
-
-    subgraph CortexCore["🧠 Kilo-Kit MCP Server (Cognitive Cortex)"]
-        GateEngine["C4 5-Gate Lifecycle Controller"]
-        
-        subgraph CognitiveEngines["Cognitive Reasoning Engines"]
-            TRIANG["kilo_triangulate_research\n(ToT DAG + Research Escalator)"]
-            TOT["kilo_think_step\n(Tree-of-Thoughts DAG)"]
-            RED["kilo_grill_plan\n(Adversarial Red-Teaming)"]
-            ROOT["kilo_trace_root_cause\n(5-Whys Diagnostic)"]
-            BENCH["kilo_benchmark_solution\n(GitHub Alignment Audit)"]
-            COMP["kilo_compact_context\n(Invariant Compressor)"]
-            SYNTH["kilo_synthesize_skill\n(Skill Evolution)"]
-        end
-
-        subgraph SkillCatalog["📚 180 Curated Skills Runtime"]
-            FuzzyResolver["Fuzzy Skill & Alias Resolver\n(brainstorming, diagnose, tdd, clean-code)"]
-            SkillValidator["Skill Schema & Quality Gate"]
-        end
-
-        subgraph SafeLimbs["🛠️ Safe Execution Limbs"]
-            SWrite["kilo_write_file\n(Atomic Write + Gate Checked)"]
-            SEdit["kilo_edit_file\n(Balanced Bracket & AST Safe)"]
-            SRun["kilo_run_command\n(Injection Guardrails)"]
-            SRead["kilo_read_file / kilo_grep_code"]
-        end
-    end
-
-    subgraph PersistenceLayer["💾 SQLite Atomic Memory & Knowledge Base"]
-        SQLiteDB[("~/.kilo-kit/orchestrator.sqlite")]
-        KTRI["cognitive_triangulations (CoT DAG Ledger)"]
-        KTRJ["katl_trajectories (Full Step Telemetry)"]
-        KFACT["memory_facts (Permanent Invariants)"]
-        KREF["learning_reflections (Autonomous Lessons)"]
-    end
-
-    HostClients <-->|MCP Protocol / stdio| SupervisorLayer
-    SupervisorLayer <--> GateEngine
-    GateEngine --> CognitiveEngines
-    GateEngine --> SkillCatalog
-    GateEngine --> SafeLimbs
-    CognitiveEngines <--> PersistenceLayer
-    SupervisorLayer --> KTRJ
-    PersistenceLayer --- SQLiteDB
+    
+    DB[("💾 SQLite Atomic Memory<br/>(cognitive_triangulations • katl_trajectories • facts)")]
+    
+    Clients <-->|MCP Protocol / stdio| Sentinel
+    Sentinel <--> Cortex
+    Cortex <--> DB
 ```
 
 ---
 
-## 🔄 C4 Cognitive Lifecycle (State Machine)
+## 🔄 C4 Cognitive Lifecycle & Low-Confidence Escalator
 
 All agent tasks flow through a deterministic 5-Gate state machine. Unauthorized file mutations prior to Gate 3 approval are blocked at the server level:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> GATE_1_GROUNDED_PROBE: User Request Received
+flowchart LR
+    G1["<b>Gate 1: Grounded Probe</b><br/>• Memory Recall<br/>• Codebase Probe"]
+    
+    G2["<b>Gate 2: Cognitive Reasoning</b><br/>• 3-Option ToT DAG<br/>• Adversarial Grill<br/>• Low-Confidence Escalator"]
+    
+    G3["<b>Gate 3: Approval</b><br/>• Plan Locked<br/>• Skills Injected"]
+    
+    G4["<b>Gate 4: Execution</b><br/>• Defense-in-Depth<br/>• Sentinel Guarded"]
+    
+    G5["<b>Gate 5: 4D QA</b><br/>• Playwright E2E<br/>• SQLite Reflection"]
 
-    state GATE_1_GROUNDED_PROBE {
-        [*] --> CallOrchestrate
-        CallOrchestrate --> SQLiteMemoryRecall: Load Facts & Reflections
-        SQLiteMemoryRecall --> CodebaseProbe: Read/Grep Exploration
-        CodebaseProbe --> BuildDiagnosticModel: Lock Invariants
-    }
-
-    GATE_1_GROUNDED_PROBE --> GATE_2_COGNITIVE_REASONING: Grounded Model Established
-
-    state GATE_2_COGNITIVE_REASONING {
-        direction TB
-        state ConfidenceCheck <<choice>>
-        [*] --> ConfidenceCheck
-        ConfidenceCheck --> TriangulateDAG: Confidence >= 0.70
-        ConfidenceCheck --> SubagentResearchEscalation: Confidence < 0.70 / Failure Streak
-        
-        SubagentResearchEscalation --> TriangulateDAG: Inject Synthesized Research
-        TriangulateDAG --> AdversarialGrill: 3-Option DAG Committed to SQLite
-        AdversarialGrill --> BenchmarkAudit: Red-Team Hardening
-        BenchmarkAudit --> Compaction: >5 Files Loaded
-    }
-
-    GATE_2_COGNITIVE_REASONING --> GATE_3_APPROVAL_AND_SKILLS: Plan Locked & Committed
-    GATE_2_COGNITIVE_REASONING --> GATE_1_GROUNDED_PROBE: Re-plan Triggered (Benchmark divergence)
-
-    state GATE_3_APPROVAL_AND_SKILLS {
-        [*] --> UserHumanApproval
-        UserHumanApproval --> ResolveSkills: Approved (brainstormingApproved=true)
-        ResolveSkills --> UnlockIOPermissions: Skills Injected
-    }
-
-    GATE_3_APPROVAL_AND_SKILLS --> GATE_4_SURGICAL_EXECUTION: Permissions Unlocked
-
-    state GATE_4_SURGICAL_EXECUTION {
-        [*] --> DefenseInDepthIO: Input / Logic / Persistence Validation
-        DefenseInDepthIO --> CleanCodeAudit: Atomic Mutation
-        CleanCodeAudit --> SentinelSupervision: Step Budget & Loop Check
-    }
-
-    GATE_4_SURGICAL_EXECUTION --> GATE_5_4D_QA_AND_REFLECTION: Implementation Complete
-    GATE_4_SURGICAL_EXECUTION --> CIRCUIT_BREAKER: 3x Loop / Mutation Thrashing
-
-    state GATE_5_4D_QA_AND_REFLECTION {
-        direction LR
-        D1_Spec: 1. Spec Fidelity (Given-When-Then)
-        D2_Code: 2. Clean Code & Deep Interfaces
-        D3_UX: 3. UI/UX & Mobile Touch
-        D4_E2E: 4. Playwright & Build Verification
-        SaveMemory: Persist Reflection to SQLite
-        
-        [*] --> D1_Spec --> D2_Code --> D3_UX --> D4_E2E --> SaveMemory
-    }
-
-    GATE_5_4D_QA_AND_REFLECTION --> COMPLETED: 4D Pass
-    GATE_5_4D_QA_AND_REFLECTION --> GATE_2_COGNITIVE_REASONING: Verification Failure
-
-    state CIRCUIT_BREAKER {
-        [*] --> Locked
-        Locked --> SupervisedReset: kilo_reset_circuit_breaker(reason)
-    }
-
-    CIRCUIT_BREAKER --> GATE_1_GROUNDED_PROBE: Reset Approved
-    COMPLETED --> [*]
+    G1 --> G2
+    G2 -->|Confidence >= 0.70| G3
+    G2 -.->|Confidence < 0.70<br/>Escalation| Subagent["🔬 Research Subagent<br/>(GitHub & Docs Sandbox)"]
+    Subagent -.-> G2
+    G3 --> G4
+    G4 --> G5
+    G4 -.->|3x Loop Detected| Breaker["🛑 Circuit Breaker<br/>(Supervised Reset)"]
+    Breaker -.-> G1
 ```
 
 ---
@@ -186,48 +103,19 @@ stateDiagram-v2
 Traditional prompt rules (`.cursorrules`, `CLAUDE.md`) suffer from prompt drift. Kilo-Kit enforces safety via **JSON-RPC Interceptor Middleware**:
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Engineer
-    participant Client as Host IDE / Agent
-    participant Sentinel as Kilo-Sentinel Middleware
-    participant Cortex as Kilo-Kit Server Runtime
-    participant Disk as File System & Execution
-
-    User->>Agent: "Implement new feature X"
+flowchart TD
+    Req["👤 User Prompt"] --> Agent["🤖 Host AI Agent"]
     
-    rect rgb(255, 235, 235)
-    Note over Client,Sentinel: 🛑 Phase 1: Hard-Gate Interception
-    Client->>Sentinel: kilo_write_file("feature.ts", content="...")
-    Sentinel->>Cortex: Check State & Pre-flight Grounding Log
-    Cortex-->>Sentinel: REJECT: Session uninitialized & File not grounded in read log!
-    Sentinel-->>Client: 403 Hard-Gate Violation: Complete Gate 1 & 2 before mutating code!
-    end
-
-    rect rgb(235, 245, 255)
-    Note over Client,Cortex: 🧠 Phase 2: Grounded Reasoning & Adversarial Red-Teaming
-    Client->>Cortex: kilo_orchestrate_task("Feature X")
-    Cortex-->>Client: Session created (State: BRAINSTORMING_REQUIRED)
-    Client->>Cortex: kilo_read_file("feature.ts") [File grounded in memory]
-    Client->>Cortex: kilo_triangulate_research(DAG: Option A, Option B, Option C)
-    Cortex-->>Client: Committed to SQLite 'cognitive_triangulations' (Record ID locked)
-    Client->>Cortex: kilo_grill_plan(plan="Option C: Triangulated Hybrid")
-    Cortex-->>Client: Risk Score: 15/100 (Invariants locked)
-    Client->>Cortex: kilo_benchmark_solution(standard="GitHub 10k+ stars pattern")
-    Cortex-->>Client: Alignment: 95% ✅
-    end
-
-    rect rgb(235, 255, 235)
-    Note over Client,Disk: 🚀 Phase 3: Authorized Execution & 4D Verification
-    User->>Client: Approve Architectural Plan
-    Client->>Cortex: kilo_orchestrate_task(sessionId, brainstormingApproved=true)
-    Cortex-->>Client: State: READY (I/O permissions unlocked)
-    Client->>Sentinel: kilo_write_file("feature.ts", content="...")
-    Sentinel->>Disk: Safe Atomic Write (Clean code verified)
-    Client->>Cortex: kilo_record_reflection(sessionId, lessons="...")
-    Cortex-->>Client: Reflection persisted to SQLite ✅
-    Client-->>User: Refactoring Complete with Empirical Test Evidence
-    end
+    Agent -->|1. Unauthorized Edit Attempt| GateCheck{"🛡️ Kilo-Sentinel<br/>Pre-Flight Lock"}
+    GateCheck -->|❌ Uninitialized / Unread File| Blocked["🛑 403 Hard-Gate Blocked<br/>(Forces Planning First)"]
+    
+    Blocked --> Plan["🧠 Gate 1 & 2: C4 Planning<br/>(kilo_orchestrate_task + kilo_triangulate_research)"]
+    Plan --> SaveDB[("💾 Commit CoT to SQLite")]
+    SaveDB --> Approval["👤 User Approves Plan"]
+    
+    Approval -->|2. Authorized Execution| GateCheck
+    GateCheck -->|✅ State = READY| Exec["🚀 Gate 4: Safe Execution<br/>(kilo_write_file / kilo_edit_file)"]
+    Exec --> Verify["✅ Gate 5: 4D Verification & SQLite Reflection"]
 ```
 
 ---
