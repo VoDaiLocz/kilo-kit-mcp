@@ -62,4 +62,4 @@ When a server needs LLM intelligence (e.g., parsing unstructured output or makin
 ## References
 - [MCP Official Documentation](https://modelcontextprotocol.io)
 - [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification)
-- [KILO-KIT MCP Integration Best Practices](/home/vodailoc/KILO-KIT/docs/mcp-integration.md)
+- [KILO-KIT MCP Integration Best Practices](docs/mcp-integration.md)

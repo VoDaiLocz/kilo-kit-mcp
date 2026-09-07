@@ -55,6 +55,6 @@ HITL checkpoints are first-class citizens in C4:
 - **Vague Prompts:** "Is this okay?" (inadequate description of change). Always use: "I am about to replace X with Y. Do you approve?"
 
 ## References
-- [KILO-KIT C4 Runtime Protocol](file:///home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/kilo-kit-core/SKILL.md)
-- [Systematic Debugging](file:///home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/systematic-debugging/SKILL.md)
-- [Verification Before Completion](file:///home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/verification-before-completion/SKILL.md)
+- [KILO-KIT C4 Runtime Protocol](skills/kilo-kit-core/SKILL.md)
+- [Systematic Debugging](skills/systematic-debugging/SKILL.md)
+- [Verification Before Completion](skills/verification-before-completion/SKILL.md)

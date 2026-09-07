@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -50,6 +50,7 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     process.env.KILO_KIT_MEMORY_PATH ?? path.join(os.homedir(), ".kilo-kit/orchestrator.sqlite"),
   );
   try {
+    mkdirSync(path.dirname(sqlitePath), { recursive: true });
     const db = new DatabaseSync(sqlitePath);
     try {
       const tableCount = db.prepare("SELECT count(*) as cnt FROM sqlite_master WHERE type='table'").get() as {
@@ -73,23 +74,23 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 3. Skill Library Discovery (Expect 177 skills)
+  // 3. Skill Library Discovery (Expect 180 skills)
   try {
     const registry = await createSkillRegistry({ repoRoot });
     const skills = registry.listSkills();
-    if (skills.length >= 177) {
+    if (skills.length >= 180) {
       checks.push({
         name: "Skill Library",
         category: "skills",
         status: "pass",
-        message: `Successfully indexed all ${skills.length}/177 skills in repository.`,
+        message: `Successfully indexed all ${skills.length}/180 skills in repository.`,
       });
     } else {
       checks.push({
         name: "Skill Library",
         category: "skills",
         status: "warn",
-        message: `Found only ${skills.length} skills (expected 177).`,
+        message: `Found only ${skills.length} skills (expected 180).`,
       });
     }
   } catch (err: unknown) {
@@ -101,12 +102,23 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 4. Host Client Configurations
+  // 4. Host Client Configurations (Multi-Platform: macOS, Linux, Windows)
+  const home = os.homedir();
   const clientConfigs = [
-    { name: "Gemini CLI / Antigravity", path: path.join(os.homedir(), ".gemini/config/mcp_config.json") },
-    { name: "Antigravity CLI Local", path: path.join(os.homedir(), ".gemini/antigravity-cli/mcp_config.json") },
-    { name: "Cursor IDE", path: path.join(os.homedir(), ".cursor/mcp.json") },
-    { name: "Claude Desktop / Code", path: path.join(os.homedir(), ".claude.json") },
+    { name: "Antigravity CLI", path: path.join(home, ".gemini/antigravity-cli/mcp_config.json") },
+    { name: "Gemini CLI", path: path.join(home, ".gemini/config/mcp_config.json") },
+    { name: "Cursor IDE", path: path.join(home, ".cursor/mcp.json") },
+    { name: "Windsurf IDE", path: path.join(home, ".codeium/windsurf/mcp_config.json") },
+    { name: "Claude Code", path: path.join(home, ".claude.json") },
+    {
+      name: "Claude Desktop",
+      path:
+        process.platform === "darwin"
+          ? path.join(home, "Library/Application Support/Claude/claude_desktop_config.json")
+          : process.platform === "win32" && process.env.APPDATA
+            ? path.join(process.env.APPDATA, "Claude/claude_desktop_config.json")
+            : path.join(home, ".config/Claude/claude_desktop_config.json"),
+    },
   ];
 
   let detectedClients = 0;
@@ -147,12 +159,12 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 5. MCP 22-Tools Discovery Check
+  // 5. MCP 24-Tools Discovery Check
   try {
     const server = await createKiloKitServer({ repoRoot });
     const registeredTools: string[] = Object.keys((server as any)._registeredTools ?? {});
     const toolCount = registeredTools.length;
-    if (toolCount >= 22) {
+    if (toolCount >= 24) {
       checks.push({
         name: "MCP Server Runtime",
         category: "server",
@@ -164,7 +176,7 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
         name: "MCP Server Runtime",
         category: "server",
         status: "warn",
-        message: `Initialized with ${toolCount} tools (expected 22).`,
+        message: `Initialized with ${toolCount} tools (expected 24).`,
       });
     }
   } catch (err: unknown) {

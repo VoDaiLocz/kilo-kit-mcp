@@ -228,6 +228,13 @@ export function setupClientMcpConfigs(): SetupResult[] {
   const home = os.homedir();
   const results: SetupResult[] = [];
 
+  // Ensure ~/.kilo-kit directory exists for fresh users
+  try {
+    mkdirSync(path.join(home, ".kilo-kit"), { recursive: true });
+  } catch {
+    // Non-fatal if environment has strict permission restrictions
+  }
+
   const kiloKitMcpEntry = {
     command: "npx",
     args: ["-y", "@vodailoc/kilo-kit-mcp"],
@@ -438,7 +445,7 @@ async function main(): Promise<void> {
     }
     console.log("");
     setupGitGlobalAliases();
-    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.8.0.");
+    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.9.0.");
     return;
   }
 

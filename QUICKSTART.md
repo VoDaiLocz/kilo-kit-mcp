@@ -1,85 +1,49 @@
-# 🚀 Kilo-Kit Quick Start Guide
+# ⚡ Quick Start
 
-> **Time Required:** 15 minutes  
-> **Difficulty:** Beginner  
-> **Prerequisites:** Basic understanding of AI agents
+Get Kilo-Kit up and running across your AI coding assistants in under 60 seconds.
 
----
-
-## 📋 What You'll Learn
-
-1. How Kilo-Kit works (Cognitive Flow Architecture)
-2. How to set up Kilo-Kit for your AI agent
-3. How to use skills effectively
-4. How to create your first custom skill
+### Prerequisites
+- **Node.js**: `>= 20.0.0`
+- **OS**: macOS (Apple Silicon & Intel), Linux, Windows (PowerShell / WSL2)
 
 ---
 
-## 🧠 Understanding Kilo-Kit (2 minutes)
+## 1. Fast Setup (Recommended)
 
-### The Core Idea
+Install Kilo-Kit globally and automatically configure all installed AI clients (Cursor, Claude, Windsurf, Antigravity, Gemini):
 
-Kilo-Kit treats AI interactions as **continuous flows**, not one-off tasks:
-
-```
-Traditional AI:     Ask → Answer → Done
-
-Kilo-Kit:           Ask → Predict → Execute → Learn → Improve
-                          ↑                        ↓
-                          └────────────────────────┘
+```bash
+npm install -g @vodailoc/kilo-kit-mcp
+kilo-kit-init global
 ```
 
-### The 5 Innovations
-
-| Innovation | What It Does | Why It Matters |
-|------------|--------------|----------------|
-| **PCE** | Predicts what context you'll need | Faster responses |
-| **SET** | Tracks skill effectiveness | Self-improving system |
-| **CBU** | Breaks skills into composable units | Maximum flexibility |
-| **TEM** | Manages token budgets | Cost efficiency |
-| **DAT** | Logs all decisions | Full explainability |
+Verify your installation:
+```bash
+kilo-kit-doctor
+```
 
 ---
 
-## 🔧 Setup (5 minutes)
+## 2. Zero-Install Setup (NPX)
 
-### Step 1: Get Kilo-Kit
+Prefer not to install globally? Add Kilo-Kit directly to your client MCP configuration:
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/kilo-kit.git
-cd kilo-kit
+### Cursor & Windsurf (`.cursor/mcp.json` or `~/.codeium/windsurf/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "npx",
+      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+    }
+  }
+}
 ```
 
-### Step 2: Copy Master Skill to Your Agent
-
-For **Claude Code / Cursor / Similar**:
-```bash
-# Create agent config directory if not exists
-mkdir -p ~/.config/your-agent
-
-# Copy the master skill
-cp src/core/KILO_MASTER.md ~/.config/your-agent/KILO_MASTER.md
-```
-
-For **Custom Agent Setup**:
-```bash
-# Add to your agent's system prompt
-Reference: src/core/KILO_MASTER.md
-```
-
-### Step 3: Verify Setup
-
-Ask your AI agent:
-```
-What are the 4 stages of Kilo-Kit's processing pipeline?
-```
-
-Expected answer should mention: **INTAKE → ROUTE → EXECUTE → LEARN**
-
-### Optional: Enable MCP Routing
-
-Kilo-Kit ships a read-only MCP server for skill routing and validation:
+### Claude Desktop
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\\Claude\\claude_desktop_config.json`
+- **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -92,217 +56,37 @@ Kilo-Kit ships a read-only MCP server for skill routing and validation:
 }
 ```
 
-For Codex CLI on Windows, prefer this TOML block:
-
-```toml
-[mcp_servers.kilo-kit]
-command = "npm"
-args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailoc/kilo-kit-mcp", "--", "kilo-kit-mcp"]
-startup_timeout_sec = 60
-enabled = true
+### Claude Code CLI
+```bash
+claude mcp add kilo-kit npx -y @vodailoc/kilo-kit-mcp
 ```
 
-For local development:
+### Antigravity & Gemini CLI (`~/.gemini/antigravity-cli/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "npx",
+      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+    }
+  }
+}
+```
+
+---
+
+## 3. Team Repository Rollout
+
+Bootstrap the Kilo-Kit C4 Cognitive Protocol into any project repository (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`):
 
 ```bash
-cd mcp
-npm install
-npm run build
-npm test
-npm run smoke
+cd your-project
+kilo-kit-init init --client all
+git add CLAUDE.md AGENTS.md GEMINI.md
+git commit -m "chore: configure Kilo-Kit C4 protocol"
 ```
 
-Add `.mcp/kilo-kit.example.json` to your MCP-capable client config when you want the npm install form.
-
----
-
-## 🎯 Using Skills (5 minutes)
-
-### Browse the Skill Library
-
-The main catalog is `skills/README.md`. It groups the imported Codex skills by category and includes a per-skill install command.
-
-Agents should use `skills/SKILLS_INDEX.md` first. It is intentionally compact so an agent can choose one or two relevant skills without loading the entire library.
-
-### How Skill Dispatch Works
-
-When you ask your AI agent something, Kilo-Kit automatically:
-
-1. **Parses your intent** (What are you trying to do?)
-2. **Matches a skill** (Which skill fits best?)
-3. **Loads context** (What info is needed?)
-4. **Executes with quality gates** (Do it right)
-5. **Learns from outcome** (Get better next time)
-
-### Common Triggers
-
-| What You Say | Skill Activated |
-|--------------|-----------------|
-| "Fix this bug" | `debugging/systematic` |
-| "Why is this failing?" | `debugging/root-cause` |
-| "Review this code" | `quality/code-review` |
-| "Write tests for this" | `quality/testing` |
-| "Create an API endpoint" | `development/backend` |
-| "Secure this auth flow" | `development/security` |
-
-### Example Interaction
-
-**You:** "There's a bug in the login function - users can't authenticate"
-
-**Kilo-Kit activates:**
-```yaml
-Intent: DEBUG
-Domain: AUTH
-Urgency: HIGH (authentication = security)
-Mode: CRITICAL (2x token budget)
-Skill: debugging/systematic
-
-Processing:
-  1. INTAKE: Parse "bug", "login", "authenticate" → DEBUG+AUTH
-  2. ROUTE: Select systematic-debugging (confidence: 0.94)
-  3. EXECUTE: Run 4-phase debugging process
-  4. LEARN: Record outcome for future improvement
-```
-
----
-
-## 🛠️ Creating Your First Skill (3 minutes)
-
-### Skill Structure
-
-```
-my-skill/
-├── SKILL.md           # Main instructions (required)
-├── references/        # Detailed documentation
-└── scripts/           # Helper scripts
-```
-
-### Minimal SKILL.md Template
-
-```yaml
----
-name: my-first-skill
-description: >-
-  A brief description of what this skill does.
-  Keywords: keyword1, keyword2, keyword3
-version: 1.0.0
----
-
-# My First Skill
-
-## When to Use
-- When user asks about [topic]
-- When task involves [specific action]
-
-## Process
-1. First, understand the request
-2. Then, gather necessary information
-3. Execute the main task
-4. Verify the result
-5. Document what was done
-
-## Guidelines
-- Always verify before claiming done
-- Ask for clarification if unclear
-- Follow project conventions
-
-## Success Criteria
-- [ ] Task completed as requested
-- [ ] No regressions introduced
-- [ ] User confirmed satisfaction
-```
-
-### Quick Create Command
-
+*Or use the global git alias anywhere:*
 ```bash
-# Create a new skill (when tools are available)
-python src/tools/init-skill.py my-skill --category development
+git kilo-init
 ```
-
----
-
-## 💰 Understanding Token Economy
-
-Kilo-Kit manages token usage automatically:
-
-| Mode | When Used | Token Budget |
-|------|-----------|--------------|
-| 🟢 **Economy** | Simple tasks | 60% |
-| 🟡 **Standard** | Most tasks | 100% |
-| 🟠 **Premium** | Complex tasks | 150% |
-| 🔴 **Critical** | Production issues | 200% |
-
-**You don't need to specify modes manually** - Kilo-Kit auto-selects based on:
-- Task urgency
-- Complexity signals
-- Domain sensitivity (security = Critical)
-
----
-
-## ✅ Quality Gates
-
-Kilo-Kit enforces quality at every step:
-
-### Before Execution
-- [ ] Intent parsed correctly?
-- [ ] Skill matched?
-- [ ] Budget sufficient?
-
-### During Execution
-- [ ] Each step validated?
-- [ ] No errors?
-
-### Before Claiming Done
-- [ ] Changes verified?
-- [ ] Tests pass?
-- [ ] User request addressed?
-
-**These gates are NEVER skipped.**
-
----
-
-## 🔍 Debugging Kilo-Kit
-
-### Check Decision Trail
-
-Ask your agent:
-```
-Show me the decision trail for the last task
-```
-
-This reveals:
-- What intent was detected
-- Which skills were considered
-- Why the chosen skill was selected
-- What alternatives existed
-
-### Common Issues
-
-| Problem | Solution |
-|---------|----------|
-| Wrong skill activated | Add more trigger keywords |
-| Slow responses | Check if Premium/Critical mode is over-used |
-| Missing context | Verify skill dependencies |
-| Quality gate fails | Review the failing criterion |
-
----
-
-## 📚 Next Steps
-
-1. **Explore existing skills** in `skills/kilo-kit/`
-2. **Read the architecture doc** in `docs/architecture/`
-3. **Create custom skills** for your workflow
-4. **Contribute improvements** - see CONTRIBUTING.md
-
----
-
-## 🆘 Getting Help
-
-- **Documentation:** `docs/` directory
-- **Examples:** `examples/` directory
-- **Issues:** GitHub Issues
-- **Discussions:** GitHub Discussions
-
----
-
-*Quick Start Guide v1.0.0 — Get productive in 15 minutes*

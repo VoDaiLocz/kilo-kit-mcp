@@ -77,4 +77,4 @@ The system should implement a mechanism to:
 - [OpenTelemetry LLM Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/llm/)
 - [Langfuse Documentation](https://langfuse.com/docs)
 - [Helicone Documentation](https://docs.helicone.ai/)
-- [KILO-KIT Observability Best Practices](file:///home/vodailoc/KILO-KIT/docs/observability.md)
+- [KILO-KIT Observability Best Practices](docs/observability.md)

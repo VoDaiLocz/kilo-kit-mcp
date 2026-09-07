@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run",
+    "test": "vitest run --fileParallelism=false",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
     "smoke": "node dist/smoke.js"

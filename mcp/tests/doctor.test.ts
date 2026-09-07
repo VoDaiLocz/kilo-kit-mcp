@@ -6,7 +6,7 @@ import { runKiloKitDoctor } from "../src/doctor.js";
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 describe("Kilo-Kit System Health Doctor", () => {
-  it("runs full diagnostic suite and returns healthy or degraded status with all 177 skills and 24 tools", async () => {
+  it("runs full diagnostic suite and returns healthy or degraded status with all 180 skills and 24 tools", async () => {
     const report = await runKiloKitDoctor(repoRoot);
 
     expect(report).toBeDefined();
@@ -16,10 +16,10 @@ describe("Kilo-Kit System Health Doctor", () => {
     const envCheck = report.checks.find((c) => c.name === "Node.js Runtime");
     expect(envCheck?.status).toBe("pass");
 
-    // 2. Skill library check (177 skills)
+    // 2. Skill library check (180 skills)
     const skillCheck = report.checks.find((c) => c.name === "Skill Library");
     expect(skillCheck?.status).toBe("pass");
-    expect(skillCheck?.message).toContain("177");
+    expect(skillCheck?.message).toContain("180");
 
     // 3. MCP Server Runtime check (24 tools)
     const serverCheck = report.checks.find((c) => c.name === "MCP Server Runtime");

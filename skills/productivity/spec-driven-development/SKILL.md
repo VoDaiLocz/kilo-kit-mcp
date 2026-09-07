@@ -91,7 +91,7 @@ SDD succeeds only when verified. Enforce these gates:
 
 - [spec-kit framework](https://github.com/spec-kit)
 - [templates/](https://github.com/spec-kit/templates/)
-- See `/home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/spec-driven-development/` for local examples.
+- See `skills/spec-driven-development/` for local examples.
 
 ---
 *SDD: If it isn't specified, it doesn't exist.*

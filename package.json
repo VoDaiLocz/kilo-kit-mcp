@@ -12,6 +12,8 @@
   "bugs": {
     "url": "https://github.com/VoDaiLocz/kilo-kit-mcp/issues"
   },
+  "type": "module",
+  "main": "mcp/dist/server.js",
   "bin": {
     "kilo-kit-mcp": "mcp/dist/server.js",
     "kilo-kit-init": "mcp/dist/init.js",

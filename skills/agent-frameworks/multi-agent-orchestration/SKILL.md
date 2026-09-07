@@ -59,6 +59,6 @@ This skill provides a framework for designing and managing multi-agent systems w
 - **Final Integration**: Verify the combined results of all subagents against original user acceptance criteria.
 
 ## References
-- KILO-KIT Core Principles (file:///home/vodailoc/.gemini/config/skills/kilo-kit/SKILL.md)
-- Systematic Debugging (file:///home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/systematic-debugging/SKILL.md)
-- Architecture Decision Making (file:///home/vodailoc/.gemini/config/plugins/kilo-kit-local/skills/architecture/SKILL.md)
+- KILO-KIT Core Principles (skills/kilo-kit/SKILL.md)
+- Systematic Debugging (skills/systematic-debugging/SKILL.md)
+- Architecture Decision Making (skills/architecture/SKILL.md)

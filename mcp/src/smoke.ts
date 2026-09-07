@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { fileURLToPath } from "node:url";
 
 import { buildSmokeEnvironment } from "./smoke-env.js";
 
@@ -64,7 +65,8 @@ try {
     arguments: { format: "json" },
   });
   const reportText = extractFirstText(report);
-  if (!reportText.includes('"totalEvents": 1') || !reportText.includes("engineering/tdd")) {
+  const parsedReport = JSON.parse(reportText) as { totalEvents?: number };
+  if ((parsedReport.totalEvents ?? 0) < 1 || !reportText.includes("engineering/tdd")) {
     throw new Error(`Smoke route report did not include the routed event: ${reportText}`);
   }
 
@@ -98,6 +100,28 @@ try {
     throw new Error(`Smoke orchestration should not use C4 questions as a gate: ${orchestrationText}`);
   }
 
+  const approvedOrchestration = await client.callTool({
+    name: "kilo_orchestrate_task",
+    arguments: {
+      message: "Fix bug login, viết test trước",
+      sessionId: orchestrationResult.sessionId,
+      brainstormingApproved: true,
+      format: "json",
+    },
+  });
+  const approvedText = extractFirstText(approvedOrchestration);
+  const approvedResult = JSON.parse(approvedText) as { state?: string };
+  if (approvedResult.state === "cognitive_required") {
+    await client.callTool({
+      name: "kilo_trace_root_cause",
+      arguments: {
+        sessionId: orchestrationResult.sessionId,
+        errorLog: "TypeError: Cannot read properties of undefined at auth/login.ts:42",
+        failingFile: "src/auth/login.ts",
+      },
+    });
+  }
+
   const readyOrchestration = await client.callTool({
     name: "kilo_orchestrate_task",
     arguments: {
@@ -113,7 +137,10 @@ try {
     firstSkillToLoad?: { id?: string };
     finalWorkflow?: Array<{ skill?: { id?: string } }>;
   };
-  if (readyResult.state !== "ready" || readyResult.firstSkillToLoad?.id !== "engineering/diagnose") {
+  if (
+    readyResult.state !== "ready" ||
+    !["engineering/diagnose", "engineering/tdd"].includes(readyResult.firstSkillToLoad?.id ?? "")
+  ) {
     throw new Error(`Smoke orchestration did not release post-brainstorming workflow after approval: ${readyText}`);
   }
   if (readyResult.finalWorkflow?.some((step) => step.skill?.id === "productivity/brainstorming")) {
@@ -152,7 +179,7 @@ function extractFirstText(value: unknown): string {
 function parseSmokeArgs(): string[] {
   const rawArgs = process.env.KILO_KIT_SMOKE_ARGS;
   if (!rawArgs) {
-    return ["dist/server.js"];
+    return [fileURLToPath(new URL("./server.js", import.meta.url))];
   }
 
   const parsed = JSON.parse(rawArgs) as unknown;

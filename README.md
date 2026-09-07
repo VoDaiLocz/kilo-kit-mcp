@@ -181,41 +181,24 @@ skills/
 
 ---
 
-## ⚡ Quick Start & Multi-Client IDE Setup
+## ⚡ Quick Start
 
-### Global Installation
+### 1. Fast Setup (Recommended)
+Install globally and automatically configure all detected AI clients (Cursor, Claude, Windsurf, Antigravity, Gemini):
+
 ```bash
 npm install -g @vodailoc/kilo-kit-mcp
 kilo-kit-init global
 ```
 
-### Multi-Client Configuration
-
-#### 1. Claude Code (`~/.claude.json` or project root)
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "kilo-kit-mcp",
-      "args": []
-    }
-  }
-}
+Verify system health:
+```bash
+kilo-kit-doctor
 ```
 
-#### 2. Antigravity & Gemini CLI (`~/.gemini/antigravity-cli/mcp_config.json`)
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "node",
-      "args": ["/usr/local/lib/node_modules/@vodailoc/kilo-kit-mcp/dist/index.js"]
-    }
-  }
-}
-```
+### 2. Zero-Install NPX (IDE Direct Integration)
+Add Kilo-Kit directly to your client's MCP configuration without installing globally:
 
-#### 3. Cursor & Windsurf (`.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
@@ -226,14 +209,18 @@ kilo-kit-init global
   }
 }
 ```
+*Supported in Cursor (`.cursor/mcp.json`), Claude Desktop (`claude_desktop_config.json`), Windsurf, and Antigravity / Gemini CLI.*
 
-#### 4. Team Repository Rollout
-Generate protocol guidelines (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) for your entire engineering team:
+### 3. Team Repository Rollout
+Bootstrap the Kilo-Kit C4 Cognitive Protocol into your project repository (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`):
+
 ```bash
 kilo-kit-init init --client all
 git add CLAUDE.md AGENTS.md GEMINI.md
-git commit -m "chore: configure Kilo-Kit C4 cognitive protocol"
+git commit -m "chore: configure Kilo-Kit C4 protocol"
 ```
+
+*Or use the global git alias: `git kilo-init`*
 
 ---
 
