@@ -237,7 +237,7 @@ export function setupClientMcpConfigs(): SetupResult[] {
 
   const kiloKitMcpEntry = {
     command: "npx",
-    args: ["-y", "@vodailoc/kilo-kit-mcp"],
+    args: ["-y", "@vodailocz/kilo-kit-mcp"],
   };
 
   const clientTargets = [
@@ -409,7 +409,7 @@ function usage(): string {
     "    Bootstraps C4 protocol rule files into target project workspace.",
     "",
     "Examples:",
-    "  npx -y @vodailoc/kilo-kit-mcp global",
+    "  npx -y @vodailocz/kilo-kit-mcp global",
     "  kilo-kit-init init --client all",
     "  kilo-kit-init init --client gemini --dir /path/to/project",
   ].join("\n");
@@ -419,8 +419,8 @@ export function setupGitGlobalAliases(): void {
   try {
     // We use npx to ensure it pulls the global or latest package, 
     // or if installed globally it runs kilo-kit-init directly.
-    const kiloInitCmd = "!git init && npx -y @vodailoc/kilo-kit-mcp init --client all";
-    const kiloCloneCmd = "!f() { git clone \"$1\" && cd \"$(basename \"$1\" .git)\" && npx -y @vodailoc/kilo-kit-mcp init --client all; }; f";
+    const kiloInitCmd = "!git init && npx -y @vodailocz/kilo-kit-mcp init --client all";
+    const kiloCloneCmd = "!f() { git clone \"$1\" && cd \"$(basename \"$1\" .git)\" && npx -y @vodailocz/kilo-kit-mcp init --client all; }; f";
 
     execSync(`git config --global alias.kilo-init '${kiloInitCmd}'`, { stdio: "ignore" });
     execSync(`git config --global alias.kilo-clone '${kiloCloneCmd}'`, { stdio: "ignore" });

@@ -9,8 +9,8 @@
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=git&label=Last%20commit&color=22c55e&labelColor=0f172a" alt="Last commit"></a>
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=github&label=Contributors&color=f97316&labelColor=0f172a" alt="Contributors"></a>
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/VoDaiLocz/kilo-kit-mcp/publish.yml?style=for-the-badge&logo=githubactions&label=Publish&color=22c55e&labelColor=0f172a" alt="Publish workflow"></a>
-  <a href="https://www.npmjs.com/package/@vodailoc/kilo-kit-mcp"><img src="https://img.shields.io/npm/v/@vodailoc/kilo-kit-mcp?style=for-the-badge&logo=npm&label=npm&color=ef4444&labelColor=0f172a" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@vodailoc/kilo-kit-mcp"><img src="https://img.shields.io/npm/dm/@vodailoc/kilo-kit-mcp?style=for-the-badge&logo=npm&label=downloads&color=0284c7&labelColor=0f172a" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/@vodailocz/kilo-kit-mcp"><img src="https://img.shields.io/npm/v/@vodailocz/kilo-kit-mcp?style=for-the-badge&logo=npm&label=npm&color=ef4444&labelColor=0f172a" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@vodailocz/kilo-kit-mcp"><img src="https://img.shields.io/npm/dm/@vodailocz/kilo-kit-mcp?style=for-the-badge&logo=npm&label=downloads&color=0284c7&labelColor=0f172a" alt="npm downloads"></a>
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&label=License&color=64748b&labelColor=0f172a" alt="License"></a>
 </p>
 
@@ -187,7 +187,7 @@ skills/
 Install globally and automatically configure all detected AI clients (Cursor, Claude, Windsurf, Antigravity, Gemini):
 
 ```bash
-npm install -g @vodailoc/kilo-kit-mcp
+npm install -g @vodailocz/kilo-kit-mcp
 kilo-kit-init global
 ```
 
@@ -204,7 +204,7 @@ Add Kilo-Kit directly to your client's MCP configuration without installing glob
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }

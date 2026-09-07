@@ -1551,7 +1551,7 @@ Add this usage block near MCP installation:
 Run the read-only local dashboard:
 
 ```bash
-npx -y @vodailoc/kilo-kit-mcp kilo-kit-dashboard --port 4377
+npx -y @vodailocz/kilo-kit-mcp kilo-kit-dashboard --port 4377
 ```
 
 Open `http://127.0.0.1:4377`.
@@ -1575,7 +1575,7 @@ Add a `Local Dashboard` section in `mcp/README.md`:
 The package also includes `kilo-kit-dashboard`, a local-only read-only web dashboard for inspecting C4 operation.
 
 ```bash
-npx -y @vodailoc/kilo-kit-mcp kilo-kit-dashboard --port 4377
+npx -y @vodailocz/kilo-kit-mcp kilo-kit-dashboard --port 4377
 ```
 
 The dashboard shows:
@@ -1700,13 +1700,13 @@ git push origin main
 git tag v2.0.0
 git push origin v2.0.0
 gh run watch --repo VoDaiLocz/KILO-KIT --exit-status
-npm view @vodailoc/kilo-kit-mcp version
+npm view @vodailocz/kilo-kit-mcp version
 ```
 
 Expected:
 
 - GitHub Actions publish workflow succeeds.
-- `npm view @vodailoc/kilo-kit-mcp version` returns `2.0.0`.
+- `npm view @vodailocz/kilo-kit-mcp version` returns `2.0.0`.
 
 ## Self-Review Checklist
 

@@ -217,7 +217,7 @@ Smoke test:
 
 v2.0 is ready when:
 
-- `npm i @vodailoc/kilo-kit-mcp` installs both `kilo-kit-mcp` and `kilo-kit-dashboard`.
+- `npm i @vodailocz/kilo-kit-mcp` installs both `kilo-kit-mcp` and `kilo-kit-dashboard`.
 - `kilo-kit-dashboard --port 4377` starts a localhost server.
 - The dashboard reads the same C4 DB/audit paths used by OpenCode and AGY.
 - A real C4 smoke session appears as `brainstorming_required`, then `ready` after `brainstormingApproved=true`.

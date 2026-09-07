@@ -67,7 +67,7 @@ Install from npm in generic MCP-capable clients:
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }
@@ -78,7 +78,7 @@ For Codex CLI on Windows, prefer the npm exec form so the source checkout does n
 ```toml
 [mcp_servers.kilo-kit]
 command = "npm"
-args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailoc/kilo-kit-mcp", "--", "kilo-kit-mcp"]
+args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailocz/kilo-kit-mcp", "--", "kilo-kit-mcp"]
 startup_timeout_sec = 60
 enabled = true
 ```

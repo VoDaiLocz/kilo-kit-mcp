@@ -2,7 +2,7 @@
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }

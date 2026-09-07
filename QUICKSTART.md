@@ -13,7 +13,7 @@ Get Kilo-Kit up and running across your AI coding assistants in under 60 seconds
 Install Kilo-Kit globally and automatically configure all installed AI clients (Cursor, Claude, Windsurf, Antigravity, Gemini):
 
 ```bash
-npm install -g @vodailoc/kilo-kit-mcp
+npm install -g @vodailocz/kilo-kit-mcp
 kilo-kit-init global
 ```
 
@@ -34,7 +34,7 @@ Prefer not to install globally? Add Kilo-Kit directly to your client MCP configu
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }
@@ -50,7 +50,7 @@ Prefer not to install globally? Add Kilo-Kit directly to your client MCP configu
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }
@@ -58,7 +58,7 @@ Prefer not to install globally? Add Kilo-Kit directly to your client MCP configu
 
 ### Claude Code CLI
 ```bash
-claude mcp add kilo-kit npx -y @vodailoc/kilo-kit-mcp
+claude mcp add kilo-kit npx -y @vodailocz/kilo-kit-mcp
 ```
 
 ### Antigravity & Gemini CLI (`~/.gemini/antigravity-cli/mcp_config.json`)
@@ -67,7 +67,7 @@ claude mcp add kilo-kit npx -y @vodailoc/kilo-kit-mcp
   "mcpServers": {
     "kilo-kit": {
       "command": "npx",
-      "args": ["-y", "@vodailoc/kilo-kit-mcp"]
+      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
     }
   }
 }

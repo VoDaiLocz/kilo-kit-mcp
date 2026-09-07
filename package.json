@@ -1,5 +1,5 @@
 {
-  "name": "@vodailoc/kilo-kit-mcp",
+  "name": "@vodailocz/kilo-kit-mcp",
   "version": "1.9.0",
   "description": "MCP server for safer coding agents with skill routing, C4 workflow gates, memory checks, and verification.",
   "license": "Apache-2.0",

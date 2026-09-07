@@ -78,7 +78,7 @@ MCP smoke check passed.
 
 **1. Install Global Tooling (All Developers):**
 ```bash
-npm install -g @vodailoc/kilo-kit-mcp
+npm install -g @vodailocz/kilo-kit-mcp
 kilo-kit-init global
 ```
 
@@ -119,12 +119,12 @@ For substantive project work, call kilo_orchestrate_task before implementation a
 
 ### Codex CLI on Windows
 
-When Codex is opened inside the Kilo-Kit source checkout, `npx -y @vodailoc/kilo-kit-mcp` can resolve the local package instead of the published package. Use an npm prefix outside the repository:
+When Codex is opened inside the Kilo-Kit source checkout, `npx -y @vodailocz/kilo-kit-mcp` can resolve the local package instead of the published package. Use an npm prefix outside the repository:
 
 ```toml
 [mcp_servers.kilo-kit]
 command = "npm"
-args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailoc/kilo-kit-mcp", "--", "kilo-kit-mcp"]
+args = ["exec", "--prefix", "C:\\Users\\Admin", "--yes", "--package=@vodailocz/kilo-kit-mcp", "--", "kilo-kit-mcp"]
 startup_timeout_sec = 60
 enabled = true
 ```
@@ -135,7 +135,7 @@ Kilo-Kit publishes through npm Trusted Publishing, so releases do not require a 
 
 Configure the npm package once:
 
-1. Open `@vodailoc/kilo-kit-mcp` on npm.
+1. Open `@vodailocz/kilo-kit-mcp` on npm.
 2. Go to `Settings` -> `Trusted publishing`.
 3. Select `GitHub Actions`.
 4. Use repository `VoDaiLocz/KILO-KIT`.
