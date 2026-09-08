@@ -337,6 +337,101 @@ export function setupClientMcpConfigs(): SetupResult[] {
   return results;
 }
 
+export function setupGlobalClientRules(): SetupResult[] {
+  const home = os.homedir();
+  const results: SetupResult[] = [];
+
+  const globalRuleTargets: Array<{ name: string; filePath: string; client: BootstrapClient; displayName: string }> = [
+    {
+      name: "Antigravity CLI (Global AGENTS.md)",
+      filePath: path.join(home, ".gemini/antigravity-cli/AGENTS.md"),
+      client: "gemini",
+      displayName: "Antigravity",
+    },
+    {
+      name: "Antigravity CLI (Global GEMINI.md)",
+      filePath: path.join(home, ".gemini/antigravity-cli/GEMINI.md"),
+      client: "gemini",
+      displayName: "Antigravity",
+    },
+    {
+      name: "Gemini CLI (Global AGENTS.md)",
+      filePath: path.join(home, ".gemini/config/AGENTS.md"),
+      client: "gemini",
+      displayName: "Gemini CLI",
+    },
+    {
+      name: "Gemini CLI (Global GEMINI.md)",
+      filePath: path.join(home, ".gemini/config/GEMINI.md"),
+      client: "gemini",
+      displayName: "Gemini CLI",
+    },
+    {
+      name: "OpenAI Codex (Global Instructions)",
+      filePath: path.join(home, ".codex/instructions.md"),
+      client: "codex",
+      displayName: "OpenAI Codex",
+    },
+  ];
+
+  for (const item of globalRuleTargets) {
+    try {
+      const dir = path.dirname(item.filePath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const res = writeBootstrapBlock({
+        client: item.client,
+        filePath: item.filePath,
+        displayName: item.displayName,
+      });
+      results.push({
+        client: item.name,
+        configPath: item.filePath,
+        action: res.action === "created" ? "configured" : "already_configured",
+      });
+    } catch (err: any) {
+      results.push({
+        client: item.name,
+        configPath: item.filePath,
+        action: "skipped",
+        error: err?.message,
+      });
+    }
+  }
+
+  // Also setup Antigravity MCP instructions.md if parent directory exists
+  try {
+    const mcpInstructionsDir = path.join(home, ".gemini/antigravity-cli/mcp/kilo-kit");
+    if (existsSync(path.dirname(mcpInstructionsDir))) {
+      mkdirSync(mcpInstructionsDir, { recursive: true });
+      const mcpInstructionsPath = path.join(mcpInstructionsDir, "instructions.md");
+      const mcpInstructions = `CRITICAL KILO-KIT C4 COGNITIVE PROTOCOL:
+1. GATE 1 (TASK ORCHESTRATION): Call kilo_orchestrate_task as your FIRST action for any request involving code, architecture, debugging, bug fixes, UI, features, or project tasks.
+2. GATE 2 (SUBSTANTIVE COGNITIVE REASONING): For features/architecture, call kilo_think_step (comparing 3 distinct trade-off options) and kilo_grill_plan. For bugs, call kilo_trace_root_cause before writing fixes.
+3. GATE 3 (APPROVAL & SKILLS): Call kilo_orchestrate_task with brainstormingApproved=true and load required skills via kilo_get_skill.
+4. GATE 4 (IMPLEMENTATION): Perform surgical changes with defense-in-depth using your native tools or Kilo-Kit tools.
+5. GATE 5 (4D QUALITY & VERIFICATION): Verify against requirements, clean code, aesthetic UI, and Playwright E2E tests before claiming completion.
+
+MANDATORY INTER-TOOL NARRATION (ZERO SILENT CHAINS):
+NEVER execute consecutive tool calls without printing a 1-2 sentence intermediate update directly to the user:
+- [DECISION]: State what you just concluded, selected, or verified.
+- [NEXT]: State what tool you are calling next and for what purpose.
+`;
+      writeFileSync(mcpInstructionsPath, mcpInstructions, "utf8");
+      results.push({
+        client: "Antigravity CLI (MCP Instructions)",
+        configPath: mcpInstructionsPath,
+        action: "configured",
+      });
+    }
+  } catch {
+    // Best-effort only
+  }
+
+  return results;
+}
+
 type CliCommand =
   | { type: "init"; options: BootstrapOptions }
   | { type: "setup" };
@@ -438,14 +533,21 @@ async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.type === "setup") {
     console.log("🚀 Running Kilo-Kit Auto-Setup across AI clients...\n");
+    console.log("📦 Configuring MCP Servers:");
     const results = setupClientMcpConfigs();
     for (const r of results) {
       const icon = r.action === "configured" ? "✅ Added" : r.action === "already_configured" ? "🔄 Updated" : "⚠️ Skipped";
       console.log(`${icon} [${r.client}]: ${r.configPath}`);
     }
+    console.log("\n🏛️ Configuring Global C4 Protocol Rules:");
+    const ruleResults = setupGlobalClientRules();
+    for (const r of ruleResults) {
+      const icon = r.action === "configured" ? "✅ Added" : r.action === "already_configured" ? "🔄 Updated" : "⚠️ Skipped";
+      console.log(`${icon} [${r.client}]: ${r.configPath}`);
+    }
     console.log("");
     setupGitGlobalAliases();
-    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.9.0.");
+    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.9.0 globally.");
     return;
   }
 

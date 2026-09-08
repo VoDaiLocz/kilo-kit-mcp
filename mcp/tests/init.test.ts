@@ -91,4 +91,11 @@ describe("kilo-kit init bootstrap", () => {
     expect(results.some((r) => r.client === "Cursor IDE")).toBe(true);
     expect(results.some((r) => r.client === "Claude Code")).toBe(true);
   });
+
+  it("configures global protocol rules across host clients", async () => {
+    const { setupGlobalClientRules } = await import("../src/init.js");
+    const results = setupGlobalClientRules();
+    expect(results.length).toBeGreaterThanOrEqual(3);
+    expect(results.some((r) => r.client.includes("Antigravity CLI"))).toBe(true);
+  });
 });

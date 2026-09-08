@@ -159,7 +159,55 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     });
   }
 
-  // 5. MCP 24-Tools Discovery Check
+  // 5. Global Protocol Rules Check
+  const globalRulePaths = [
+    path.join(home, ".gemini/antigravity-cli/AGENTS.md"),
+    path.join(home, ".gemini/config/AGENTS.md"),
+    path.join(home, ".codex/instructions.md"),
+  ];
+  let globalRuleFound = false;
+  let hasNarration = false;
+  for (const grPath of globalRulePaths) {
+    if (existsSync(grPath)) {
+      try {
+        const content = readFileSync(grPath, "utf8");
+        if (content.includes("Kilo-Kit C4 v3.0 Cognitive Protocol")) {
+          globalRuleFound = true;
+          if (content.includes("MANDATORY INTER-TOOL NARRATION")) {
+            hasNarration = true;
+            break;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (globalRuleFound && hasNarration) {
+    checks.push({
+      name: "Global Protocol Rules",
+      category: "clients",
+      status: "pass",
+      message: "Global C4 v3.0 rules active with mandatory inter-tool narration across projects.",
+    });
+  } else if (globalRuleFound) {
+    checks.push({
+      name: "Global Protocol Rules",
+      category: "clients",
+      status: "warn",
+      message: "Global C4 rules detected but missing mandatory inter-tool narration block. Run 'kilo-kit-init global' to sync.",
+    });
+  } else {
+    checks.push({
+      name: "Global Protocol Rules",
+      category: "clients",
+      status: "warn",
+      message: "No global C4 rules found. Run 'kilo-kit-init global' to enable across all projects.",
+    });
+  }
+
+  // 6. MCP 24-Tools Discovery Check
   try {
     const server = await createKiloKitServer({ repoRoot });
     const registeredTools: string[] = Object.keys((server as any)._registeredTools ?? {});
