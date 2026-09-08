@@ -291,6 +291,11 @@ export function setupClientMcpConfigs(): SetupResult[] {
             : path.join(home, ".config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"),
       onlyIfParentExists: true,
     },
+    {
+      name: "GitHub Copilot",
+      path: path.join(home, ".copilot/mcp-config.json"),
+      onlyIfParentExists: true,
+    },
   ];
 
   for (const target of clientTargets) {
@@ -342,7 +347,13 @@ export function setupGlobalClientRules(): SetupResult[] {
   const home = os.homedir();
   const results: SetupResult[] = [];
 
-  const globalRuleTargets: Array<{ name: string; filePath: string; client: BootstrapClient; displayName: string }> = [
+  const globalRuleTargets: Array<{
+    name: string;
+    filePath: string;
+    client: BootstrapClient;
+    displayName: string;
+    onlyIfParentExists?: boolean;
+  }> = [
     {
       name: "Antigravity CLI (Global AGENTS.md)",
       filePath: path.join(home, ".gemini/antigravity-cli/AGENTS.md"),
@@ -373,11 +384,28 @@ export function setupGlobalClientRules(): SetupResult[] {
       client: "codex",
       displayName: "OpenAI Codex",
     },
+    {
+      name: "GitHub Copilot (Global AGENTS.md)",
+      filePath: path.join(home, ".copilot/AGENTS.md"),
+      client: "gemini",
+      displayName: "GitHub Copilot",
+      onlyIfParentExists: true,
+    },
+    {
+      name: "OpenCode (Global Instructions)",
+      filePath: path.join(home, ".opencode/instructions.md"),
+      client: "gemini",
+      displayName: "OpenCode",
+      onlyIfParentExists: true,
+    },
   ];
 
   for (const item of globalRuleTargets) {
     try {
       const dir = path.dirname(item.filePath);
+      if (item.onlyIfParentExists && !existsSync(dir)) {
+        continue;
+      }
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
       }

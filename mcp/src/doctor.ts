@@ -119,6 +119,8 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
             ? path.join(process.env.APPDATA, "Claude/claude_desktop_config.json")
             : path.join(home, ".config/Claude/claude_desktop_config.json"),
     },
+    { name: "GitHub Copilot", path: path.join(home, ".copilot/mcp-config.json") },
+    { name: "OpenCode", path: path.join(home, ".config/opencode/opencode.jsonc") },
   ];
 
   let detectedClients = 0;
@@ -126,8 +128,18 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     if (existsSync(client.path)) {
       try {
         const raw = readFileSync(client.path, "utf8");
-        const parsed = JSON.parse(raw);
-        const hasKiloKit = parsed.mcpServers?.["kilo-kit"] !== undefined;
+        let hasKiloKit = false;
+        try {
+          const parsed = JSON.parse(raw);
+          hasKiloKit =
+            parsed.mcpServers?.["kilo-kit"] !== undefined ||
+            parsed.mcp?.["kilo-kit"] !== undefined;
+        } catch {
+          // If file is JSONC with comments or trailing commas, verify key existence
+          hasKiloKit =
+            raw.includes('"kilo-kit"') &&
+            (raw.includes('"mcpServers"') || raw.includes('"mcp"'));
+        }
         if (hasKiloKit) {
           detectedClients++;
           checks.push({
@@ -164,6 +176,8 @@ export async function runKiloKitDoctor(repoRoot: string): Promise<DoctorReport> 
     path.join(home, ".gemini/antigravity-cli/AGENTS.md"),
     path.join(home, ".gemini/config/AGENTS.md"),
     path.join(home, ".codex/instructions.md"),
+    path.join(home, ".copilot/AGENTS.md"),
+    path.join(home, ".opencode/instructions.md"),
   ];
   let globalRuleFound = false;
   let hasNarration = false;
