@@ -146,10 +146,11 @@ Applies to: ${target.displayName}, Antigravity, Gemini CLI, Claude Code, OpenAI 
    - **Continuous Reflection:** Call \`kilo_record_reflection\` with sessionId to persist lessons learned into SQLite memory.
 
 ### 📢 MANDATORY INTER-TOOL NARRATION (ZERO SILENT CHAINS):
-- **Iron Law:** NEVER execute consecutive tool calls without printing a 1-2 sentence intermediate update directly to the user. The terminal user CANNOT inspect internal MCP return payloads.
-- **Micro-Narration Protocol before issuing next tool call:**
+- **Iron Law:** NEVER execute a tool call with an empty text response. Every turn that invokes a tool call MUST include a visible 1-2 sentence text body to the terminal user before the tool executes.
+- **Micro-Narration Format (MANDATORY in every single tool response):**
   - \`[DECISION]:\` State what you just concluded, selected, or verified cụ thể.
   - \`[NEXT]:\` State what tool you are calling next and for what purpose.
+- **STRICT PROHIBITION:** Emitting tool calls with empty text content (\`content: ""\`) or chaining 2+ tool calls silently without user-facing text between them is a strict protocol violation.
 ${END_MARKER}
 `;
 }
