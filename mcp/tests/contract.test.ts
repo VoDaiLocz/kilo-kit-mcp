@@ -57,6 +57,14 @@ describe("Kilo-Kit MCP Contract & Discovery Snapshot", () => {
     expect(toolsMap.kilo_search_files.inputSchema.shape.sessionId).toBeDefined();
     expect(toolsMap.kilo_grep_code.inputSchema.shape.sessionId).toBeDefined();
     expect(toolsMap.kilo_read_file.inputSchema.shape.sessionId).toBeDefined();
+
+    // Verify Triple-Lock narrationSchema exists in core cognitive & modifying tools
+    expect(toolsMap.kilo_orchestrate_task.inputSchema.shape.decision_narration).toBeDefined();
+    expect(toolsMap.kilo_think_step.inputSchema.shape.decision_narration).toBeDefined();
+    expect(toolsMap.kilo_grill_plan.inputSchema.shape.decision_narration).toBeDefined();
+    expect(toolsMap.kilo_write_file.inputSchema.shape.decision_narration).toBeDefined();
+    expect(toolsMap.kilo_edit_file.inputSchema.shape.decision_narration).toBeDefined();
+    expect(toolsMap.kilo_run_command.inputSchema.shape.decision_narration).toBeDefined();
   });
 
   it("registers required resources and prompts", async () => {

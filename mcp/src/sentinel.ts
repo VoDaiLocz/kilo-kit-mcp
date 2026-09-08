@@ -50,6 +50,7 @@ export class KiloSentinel {
   private circuitStates = new Map<string, CircuitBreakerState>();
   private tripReasons = new Map<string, string>();
   private sessionSteps = new Map<string, number>();
+  private lastCallTimes = new Map<string, Array<{ toolName: string; timestamp: number }>>();
 
   constructor(options: SentinelOptions) {
     this.memory = options.memory;
@@ -238,6 +239,62 @@ export class KiloSentinel {
       groundedFiles: Array.from(grounded),
       totalProbes: this.probeCounts.get(sessionId) ?? 0,
     };
+  }
+
+  /**
+   * Validate narration quality to prevent superficial bypasses
+   */
+  public inspectNarrationQuality(
+    decision?: string,
+    nextAction?: string,
+  ): { allowed: boolean; reason: string } {
+    const boilerplateRegex = /^(ok|next|continue|ready|start|step \d+|file creation|prepare|none|n\/a|test)$/i;
+
+    if (decision !== undefined) {
+      const trimmed = decision.trim();
+      if (trimmed.length < 8 || boilerplateRegex.test(trimmed)) {
+        return {
+          allowed: false,
+          reason: `Superficial decision narration detected ('${trimmed}'). You must explicitly state what you concluded, verified, or analyzed.`,
+        };
+      }
+    }
+
+    if (nextAction !== undefined) {
+      const trimmed = nextAction.trim();
+      if (trimmed.length < 8 || boilerplateRegex.test(trimmed)) {
+        return {
+          allowed: false,
+          reason: `Superficial next_action narration detected ('${trimmed}'). You must state what this tool invocation achieves and what immediate action follows.`,
+        };
+      }
+    }
+
+    return { allowed: true, reason: "" };
+  }
+
+  /**
+   * Check for silent chained call bursts (multiple cognitive/modifying tools fired in rapid burst < 250ms)
+   */
+  public checkCallBurst(
+    sessionId: string,
+    toolName: string,
+  ): { isBurst: boolean; consecutiveRapidCalls: number } {
+    const now = Date.now();
+    const calls = this.lastCallTimes.get(sessionId) ?? [];
+    calls.push({ toolName, timestamp: now });
+    if (calls.length > 10) calls.shift();
+    this.lastCallTimes.set(sessionId, calls);
+
+    if (calls.length >= 3) {
+      const recent = calls.slice(-3);
+      const timeSpan = recent[2]!.timestamp - recent[0]!.timestamp;
+      if (timeSpan < 250) {
+        return { isBurst: true, consecutiveRapidCalls: 3 };
+      }
+    }
+
+    return { isBurst: false, consecutiveRapidCalls: 0 };
   }
 
   /**

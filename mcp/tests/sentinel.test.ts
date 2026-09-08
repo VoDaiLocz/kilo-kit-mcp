@@ -219,4 +219,48 @@ describe("KiloSentinel Supervisor & Circuit Breaker", () => {
 
     expect(preFlight.allowed).toBe(true);
   });
+
+  it("validates narration quality and rejects superficial boilerplate", () => {
+    const memory = createInMemoryOrchestrationMemory();
+    const sentinel = new KiloSentinel({ memory });
+
+    // Valid detailed narration
+    const valid = sentinel.inspectNarrationQuality(
+      "Đã hoàn thành kiểm tra baseline và xác nhận 69 bài test pass",
+      "Tiến hành cập nhật phiên bản 1.9.1 trong package.json",
+    );
+    expect(valid.allowed).toBe(true);
+
+    // Undefined narrations are allowed (optional)
+    expect(sentinel.inspectNarrationQuality(undefined, undefined).allowed).toBe(true);
+
+    // Superficial / short decision
+    const shortDecision = sentinel.inspectNarrationQuality("ok", "Tiến hành cập nhật package.json");
+    expect(shortDecision.allowed).toBe(false);
+    expect(shortDecision.reason).toContain("Superficial decision narration detected");
+
+    // Boilerplate decision
+    const boilerplateDecision = sentinel.inspectNarrationQuality("file creation", "Tiến hành cập nhật package.json");
+    expect(boilerplateDecision.allowed).toBe(false);
+
+    // Superficial nextAction
+    const shortNext = sentinel.inspectNarrationQuality("Đã hoàn thành kiểm tra baseline test", "next");
+    expect(shortNext.allowed).toBe(false);
+    expect(shortNext.reason).toContain("Superficial next_action narration detected");
+  });
+
+  it("detects rapid call bursts across consecutive tool invocations", () => {
+    const memory = createInMemoryOrchestrationMemory();
+    const sentinel = new KiloSentinel({ memory });
+    const sessionId = "burst-test";
+
+    // Call 1 & 2
+    expect(sentinel.checkCallBurst(sessionId, "kilo_think_step").isBurst).toBe(false);
+    expect(sentinel.checkCallBurst(sessionId, "kilo_think_step").isBurst).toBe(false);
+
+    // Call 3 immediately -> isBurst = true (time span < 250ms)
+    const burstCheck = sentinel.checkCallBurst(sessionId, "kilo_think_step");
+    expect(burstCheck.isBurst).toBe(true);
+    expect(burstCheck.consecutiveRapidCalls).toBe(3);
+  });
 });

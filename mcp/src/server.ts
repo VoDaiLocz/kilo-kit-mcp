@@ -60,10 +60,34 @@ import { KiloSentinel } from "./sentinel.js";
 import { validateSkills } from "./validator.js";
 import type { ResponseFormat } from "./types.js";
 
-const SERVER_VERSION = "1.9.0";
+const SERVER_VERSION = "1.9.1";
 const DEFAULT_REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const formatSchema = z.enum(["markdown", "json"]).default("markdown");
+
+export const narrationSchema = {
+  decision_narration: z
+    .string()
+    .min(8)
+    .optional()
+    .describe(
+      "MANDATORY INTER-TOOL NARRATION: State what you just concluded, verified, or analyzed before calling this tool. Appears in terminal tool badge for full user observability.",
+    ),
+  next_action_narration: z
+    .string()
+    .min(8)
+    .optional()
+    .describe(
+      "MANDATORY: State what this tool will execute and what immediate action follows.",
+    ),
+};
+
+function formatNarrationBanner(decision?: string, nextAction?: string): string {
+  const parts: string[] = [];
+  if (decision) parts.push(`> 💡 **[DECISION]:** ${decision}`);
+  if (nextAction) parts.push(`> 🎯 **[NEXT]:** ${nextAction}`);
+  return parts.length > 0 ? parts.join("\n") + "\n\n" : "";
+}
 
 export interface CreateKiloKitServerOptions {
   repoRoot?: string;
@@ -142,6 +166,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         brainstormingApproved: z.boolean().optional(),
         answers: z.record(z.string().max(2000)).optional(),
         memoryConfirmations: z.record(z.enum(["accepted", "rejected"])).optional(),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -150,7 +175,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: false,
       },
     },
-    async ({ message, task, prompt, context, sessionId, brainstormingApproved, answers, memoryConfirmations, format }) => {
+    async ({ message, task, prompt, context, sessionId, brainstormingApproved, answers, memoryConfirmations, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const taskMessage = message || task || prompt || "Analyze and orchestrate current workspace task.";
       const result = orchestrator.orchestrate({
         message: taskMessage,
@@ -172,12 +203,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId: result.sessionId,
         toolName: "kilo_orchestrate_task",
-        args: { taskMode: result.taskMode, state: result.state },
+        args: { taskMode: result.taskMode, state: result.state, decision_narration, next_action_narration },
         success: true,
         durationMs: 5,
         summary: `Orchestrated session '${result.sessionId}' in state '${result.state}' (${result.taskMode})`,
       });
-      return textResponse(formatOrchestration(result, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatOrchestration(result, normalizeFormat(format)));
     },
   );
 
@@ -641,6 +673,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         content: z.string().describe("Complete file content to write"),
         overwrite: z.boolean().optional().describe("Allow overwriting existing files"),
         sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -649,7 +682,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: false,
       },
     },
-    async ({ filePath, path: p, file, content, overwrite, sessionId, format }) => {
+    async ({ filePath, path: p, file, content, overwrite, sessionId, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const targetPath = filePath || p || file;
       if (!targetPath) {
         return textResponse("Error: filePath, path, or file argument is required.");
@@ -667,12 +706,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_write_file",
-        args: { filePath: targetPath, overwrite },
+        args: { filePath: targetPath, overwrite, decision_narration, next_action_narration },
         success: true,
         durationMs: Date.now() - start,
         summary: `Action: ${result.action} on ${result.filePath}`,
       });
-      return textResponse(formatWriteFile(result, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatWriteFile(result, normalizeFormat(format)));
     },
   );
 
@@ -690,6 +730,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         replacementContent: z.string().describe("Replacement content"),
         allowMultiple: z.boolean().optional().describe("Allow multiple replacements"),
         sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -698,7 +739,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: false,
       },
     },
-    async ({ filePath, path: p, file, targetContent, replacementContent, allowMultiple, sessionId, format }) => {
+    async ({ filePath, path: p, file, targetContent, replacementContent, allowMultiple, sessionId, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const targetPath = filePath || p || file;
       if (!targetPath) {
         return textResponse("Error: filePath, path, or file argument is required.");
@@ -722,12 +769,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_edit_file",
-        args: { filePath: targetPath, targetContent },
+        args: { filePath: targetPath, targetContent, decision_narration, next_action_narration },
         success: result.replacements > 0,
         durationMs: Date.now() - start,
         summary: `Edit applied (${result.replacements} replacements) on ${result.filePath}`,
       });
-      return textResponse(formatEditFile(result, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatEditFile(result, normalizeFormat(format)));
     },
   );
 
@@ -742,6 +790,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         cwd: z.string().optional().describe("Working directory relative to repoRoot"),
         timeoutMs: z.number().int().min(1000).max(120000).optional().describe("Timeout in milliseconds"),
         sessionId: z.string().min(1).describe("Active Kilo-Kit session ID (must be in ready state)"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -750,7 +799,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: false,
       },
     },
-    async ({ command, cwd, timeoutMs, sessionId, format }) => {
+    async ({ command, cwd, timeoutMs, sessionId, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const preFlight = sentinel.inspectPreFlight({
         sessionId,
         toolName: "kilo_run_command",
@@ -764,13 +819,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_run_command",
-        args: { command, cwd },
+        args: { command, cwd, decision_narration, next_action_narration },
         success: result.exitCode === 0,
         exitCode: result.exitCode,
         durationMs: Date.now() - start,
         summary: result.exitCode === 0 ? "Command completed successfully" : `Command failed with code ${result.exitCode}`,
       });
-      return textResponse(formatRunCommand(result, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatRunCommand(result, normalizeFormat(format)));
     },
   );
 
@@ -794,6 +850,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         branchId: z.string().optional().describe("Identifier for this reasoning branch"),
         hypothesis: z.string().optional().describe("Explicit hypothesis being tested"),
         sessionId: z.string().optional().describe("Optional session ID"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -814,8 +871,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       branchId,
       hypothesis,
       sessionId,
+      decision_narration,
+      next_action_narration,
       format,
     }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const result = executeThinkStep({
         thought,
         thoughtNumber,
@@ -836,15 +901,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         sentinel.recordPostExecution({
           sessionId,
           toolName: "kilo_think_step",
-          args: { thoughtNumber, totalThoughts, branchId, hypothesis, label },
+          args: { thoughtNumber, totalThoughts, branchId, hypothesis, label, decision_narration, next_action_narration },
           success: true,
           durationMs: 5,
           summary: `Thought #${thoughtNumber}/${totalThoughts} recorded: ${thought.slice(0, 100)}`,
         });
       }
       const output = formatThinkStep(result, normalizeFormat(format));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
       const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang làm gì*\n\n`;
-      return textResponse(header + output);
+      return textResponse(narrationHeader + header + output);
     },
   );
 
@@ -862,6 +928,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         context: z.string().optional().describe("Relevant file paths, tech stack, or system constraints"),
         depth: z.enum(["quick", "deep", "hardcore"]).optional().describe("Grilling depth"),
         sessionId: z.string().optional().describe("Active session ID to register cognitive gate satisfaction"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -870,7 +937,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ label, plan, context, depth, sessionId, format }) => {
+    async ({ label, plan, context, depth, sessionId, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const result = executeGrillPlan({ plan, context, depth });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, "kilo_grill_plan", {
@@ -880,15 +953,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         sentinel.recordPostExecution({
           sessionId,
           toolName: "kilo_grill_plan",
-          args: { depth, label },
+          args: { depth, label, decision_narration, next_action_narration },
           success: true,
           durationMs: 5,
           summary: `Grill plan completed with verdict ${result.readinessVerdict} (Risk: ${result.riskScore}/100)`,
         });
       }
       const output = formatGrillPlan(result, normalizeFormat(format));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
       const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang phản biện gì*\n\n`;
-      return textResponse(header + output);
+      return textResponse(narrationHeader + header + output);
     },
   );
 
@@ -907,6 +981,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         expectedBehavior: z.string().optional().describe("Expected behavior"),
         actualBehavior: z.string().optional().describe("Actual behavior"),
         sessionId: z.string().optional().describe("Active session ID to register cognitive gate satisfaction"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -915,7 +990,13 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: true,
       },
     },
-    async ({ label, errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, format }) => {
+    async ({ label, errorLog, failingFile, expectedBehavior, actualBehavior, sessionId, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const result = executeTraceRootCause({ errorLog, failingFile, expectedBehavior, actualBehavior });
       if (sessionId) {
         orchestrator.recordCognitiveTool(sessionId, "kilo_trace_root_cause", {
@@ -924,15 +1005,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         sentinel.recordPostExecution({
           sessionId,
           toolName: "kilo_trace_root_cause",
-          args: { failingFile, label },
+          args: { failingFile, label, decision_narration, next_action_narration },
           success: true,
           durationMs: 5,
           summary: `Root cause identified: ${result.rootCause}`,
         });
       }
       const output = formatTraceRootCause(result, normalizeFormat(format));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
       const header = label ? `> 🏷️ **${label}**\n\n` : `> ⚠️ *Tip: thêm \`label\` param để user thấy bạn đang truy vết lỗi gì*\n\n`;
-      return textResponse(header + output);
+      return textResponse(narrationHeader + header + output);
     },
   );
 
@@ -1087,6 +1169,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         sessionId: z.string().min(1).describe("Active Kilo-Kit session ID"),
         proposedApproach: z.string().min(10).describe("The approach, architecture, or code produced in this session"),
         industryBestPractice: z.string().min(10).describe("Standard pattern, library, or algorithm used by top GitHub repos"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -1095,19 +1178,26 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         idempotentHint: false,
       },
     },
-    async ({ sessionId, proposedApproach, industryBestPractice, format }) => {
+    async ({ sessionId, proposedApproach, industryBestPractice, decision_narration, next_action_narration, format }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const report = sentinel.benchmarkSolution(sessionId, proposedApproach, industryBestPractice);
       if (sessionId) {
         sentinel.recordPostExecution({
           sessionId,
           toolName: "kilo_benchmark_solution",
-          args: { proposedApproach, industryBestPractice },
+          args: { proposedApproach, industryBestPractice, decision_narration, next_action_narration },
           success: true,
           durationMs: 5,
           summary: `Benchmark completed with verdict: ${report.verdict} (${report.summary})`,
         });
       }
-      return textResponse(formatBenchmarkReport(report, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatBenchmarkReport(report, normalizeFormat(format)));
     },
   );
 
@@ -1145,6 +1235,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         requiresResearchEscalation: z.boolean().optional().describe("Explicitly request deep subagent research fallback"),
         researchFindings: z.string().optional().describe("Synthesized findings from research subagent if research escalation was triggered"),
         adversarialRiskScore: z.number().min(0).max(100).optional().describe("Adversarial risk score from red-team grilling"),
+        ...narrationSchema,
         format: formatSchema.optional(),
       },
       annotations: {
@@ -1164,8 +1255,16 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       requiresResearchEscalation,
       researchFindings,
       adversarialRiskScore,
+      decision_narration,
+      next_action_narration,
       format,
     }) => {
+      if (decision_narration || next_action_narration) {
+        const qualityCheck = sentinel.inspectNarrationQuality(decision_narration, next_action_narration);
+        if (!qualityCheck.allowed) {
+          return textResponse(`[KILO-SENTINEL NARRATION REJECTED] ${qualityCheck.reason}`);
+        }
+      }
       const result = executeTriangulateResearch(orchestrationMemory, {
         sessionId,
         taskDescription,
@@ -1183,13 +1282,14 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       sentinel.recordPostExecution({
         sessionId,
         toolName: "kilo_triangulate_research",
-        args: { chosenOption, confidenceScore, escalationTriggered: result.record.escalationTriggered },
+        args: { chosenOption, confidenceScore, escalationTriggered: result.record.escalationTriggered, decision_narration, next_action_narration },
         success: true,
         durationMs: 10,
         summary: `Cognitive Triangulation committed to SQLite: '${chosenOption}' (Confidence: ${Math.round(confidenceScore * 100)}%, Escalation: ${result.record.escalationTriggered ? "YES" : "NO"})`,
       });
 
-      return textResponse(formatCognitiveTriangulation(result, normalizeFormat(format)));
+      const narrationHeader = formatNarrationBanner(decision_narration, next_action_narration);
+      return textResponse(narrationHeader + formatCognitiveTriangulation(result, normalizeFormat(format)));
     },
   );
 

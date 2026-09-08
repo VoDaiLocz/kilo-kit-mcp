@@ -548,7 +548,7 @@ async function main(): Promise<void> {
     }
     console.log("");
     setupGitGlobalAliases();
-    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.9.0 globally.");
+    console.log("\n🎉 Setup complete! All AI clients are ready to use Kilo-Kit v1.9.1 globally.");
     return;
   }
 
