@@ -34,6 +34,8 @@
     "src/tools/validate-skill.js"
   ],
   "scripts": {
+    "build": "npm --prefix mcp install && npm --prefix mcp run build",
+    "start": "node mcp/dist/server.js",
     "doctor": "node mcp/dist/doctor.js",
     "mcp:install": "npm --prefix mcp install",
     "mcp:build": "npm --prefix mcp run build",
