@@ -8,6 +8,8 @@ import type {
   OrchestrationInput,
   OrchestrationResult,
   OrchestrationState,
+  TaskTier,
+  TaskTierClassification,
   VerificationGate,
 } from "./orchestration-types.js";
 import type { SkillRegistry } from "./registry.js";
@@ -41,6 +43,7 @@ export interface OrchestrationSession {
   createdAt: string;
   route: RouteIntentResult;
   workflow: RouteWorkflowStep[];
+  taskTier: TaskTierClassification;
   brainstormingApproved: boolean;
   answers: Record<string, string>;
   memorySuggestions: MemorySuggestion[];
@@ -149,6 +152,7 @@ export function createOrchestrator(options: CreateOrchestratorOptions): KiloOrch
         state,
         message: session.message,
         taskMode: session.route.taskMode,
+        taskTier: session.taskTier,
         questions: [],
         missingInfo,
         route: session.route,
@@ -187,13 +191,15 @@ function getOrCreateSession(
     limit: 5,
   });
   const workflow = ensureBrainstormingFirst(registry, route.workflow, input);
+  const taskTier = classifyTaskTier(input.message, input.context);
   const session: OrchestrationSession = {
     sessionId: input.sessionId ?? randomUUID(),
     message: input.message,
     createdAt: new Date().toISOString(),
     route,
     workflow,
-    brainstormingApproved: input.brainstormingApproved === true,
+    taskTier,
+    brainstormingApproved: input.brainstormingApproved === true || taskTier.autoApproved,
     answers: {},
     memorySuggestions: [],
     memoryConfirmations: {},
@@ -262,6 +268,7 @@ function ensureMemorySuggestions(
   session.memorySuggestions = memory.suggest({
     taskMode: session.route.taskMode,
     workflowSkillIds: session.workflow.map((step) => step.skill.id),
+    message: session.message,
     ...(session.context?.projectFingerprint ? { projectFingerprint: session.context.projectFingerprint } : {}),
   });
   return session.memorySuggestions;
@@ -271,6 +278,15 @@ function selectState(
   session: OrchestrationSession,
   pendingSuggestions: MemorySuggestion[],
 ): OrchestrationState {
+  const tier = session.taskTier?.tier ?? "tier_2_standard";
+
+  if (tier === "tier_0_inspect" || tier === "tier_1_micro") {
+    if (pendingSuggestions.length > 0) {
+      return "awaiting_memory_confirmation";
+    }
+    return "ready";
+  }
+
   if (isSubstantiveWork(session) && !session.brainstormingApproved) {
     return "brainstorming_required";
   }
@@ -284,6 +300,88 @@ function selectState(
     }
   }
   return "ready";
+}
+
+export function classifyTaskTier(
+  message: string,
+  context?: OrchestrationInput["context"],
+): TaskTierClassification {
+  const msg = message.trim();
+
+  // Tier 3: Heavy / Architecture / Security / Migrations
+  if (
+    /(security|vulnerability|exploit|cve|lỗ hổng|rò rỉ|bảo mật|architecture|architectural|refactor whole|rewrite|redesign|migration|di chuyển csdl|breaking change)/i.test(
+      msg,
+    )
+  ) {
+    return {
+      tier: "tier_3_heavy",
+      reason: "High blast radius: Architecture, Security, or breaking changes require strict 5-Gate protocol with Red-Team adversarial grill.",
+      autoApproved: false,
+      requiresCognitiveGate: true,
+    };
+  }
+
+  // Tier 0: Inspect / Read-only / Query / Status / Git check
+  if (isPureInspectRequest(msg)) {
+    return {
+      tier: "tier_0_inspect",
+      reason: "Read-only inspection or informational query: zero modification blast radius.",
+      autoApproved: true,
+      requiresCognitiveGate: false,
+    };
+  }
+
+  // Tier 1: Micro fix / Fast-path / Single file typo / Docs / Run test
+  if (isMicroFixRequest(msg, context)) {
+    return {
+      tier: "tier_1_micro",
+      reason: "Micro change: Single file typo, documentation, comments, or isolated verification test.",
+      autoApproved: true,
+      requiresCognitiveGate: false,
+    };
+  }
+
+  // Tier 2: Standard Feature / Bug
+  return {
+    tier: "tier_2_standard",
+    reason: "Standard development or bugfix: requires cognitive reasoning & pre-flight verification.",
+    autoApproved: false,
+    requiresCognitiveGate: true,
+  };
+}
+
+function isPureInspectRequest(message: string): boolean {
+  if (
+    /(fix|sửa|build|tạo|thêm|add|implement|refactor|write|viết|modify|thay đổi|delete|remove|xóa|install|cài đặt|migrate)/i.test(
+      message,
+    )
+  ) {
+    return false;
+  }
+  return /\b(status|show|read|explain|what is|what's|la sao|là sao|giải thích|là gì|list|view|inspect|describe|check|compare|search|kiểm tra|xem|grep|find|diff|log|report|audit)\b/i.test(
+    message,
+  );
+}
+
+function isMicroFixRequest(message: string, context?: OrchestrationInput["context"]): boolean {
+  if (
+    /(typo|chính tả|docstring|comment|chú thích|readme|format|lint|prettier|run test|chạy test|npm test|vitest|pytest|cargo test|go test)/i.test(
+      message,
+    )
+  ) {
+    if (!/(refactor|architecture|system|redesign|migration|overhaul)/i.test(message)) {
+      return true;
+    }
+  }
+
+  if (context?.files && context.files.length === 1 && message.length < 80) {
+    if (/(fix small|quick fix|minor|sửa nhỏ|cập nhật nhỏ)/i.test(message)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function ensureBrainstormingFirst(

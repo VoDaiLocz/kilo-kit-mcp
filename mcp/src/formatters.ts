@@ -388,22 +388,95 @@ export function formatGrepCode(result: any, format: "markdown" | "json"): string
   ].join("\n");
 }
 
+export interface SmartTruncateOptions {
+  maxChars?: number;
+  headLines?: number;
+  tailLines?: number;
+  errorWindowLines?: number;
+}
+
+export function smartTruncateOutput(text: string, options: SmartTruncateOptions = {}): { text: string; truncated: boolean } {
+  const maxChars = options.maxChars ?? 32 * 1024;
+  if (!text || text.length <= maxChars) {
+    return { text, truncated: false };
+  }
+
+  const lines = text.split(/\r?\n/);
+  const totalLines = lines.length;
+  const headLinesCount = options.headLines ?? 30;
+  const tailLinesCount = options.tailLines ?? 120;
+  const errorWindow = options.errorWindowLines ?? 10;
+
+  if (totalLines <= headLinesCount + tailLinesCount) {
+    const headChars = Math.floor(maxChars * 0.2);
+    const tailChars = Math.floor(maxChars * 0.8);
+    const headPart = text.slice(0, headChars);
+    const tailPart = text.slice(text.length - tailChars);
+    return {
+      text: `${headPart}\n\n... [Middle truncated: ${text.length - maxChars} chars omitted] ...\n\n${tailPart}`,
+      truncated: true,
+    };
+  }
+
+  const headLines = lines.slice(0, headLinesCount);
+  const tailLines = lines.slice(totalLines - tailLinesCount);
+
+  // Scan intermediate lines for critical error patterns
+  const errorPattern = /\b(error|fail|failed|failure|fatal|panic|exception|traceback|syntaxerror|typeerror|referenceerror|segfault)\b/i;
+  const intermediateLines = lines.slice(headLinesCount, totalLines - tailLinesCount);
+  const errorSnippets: string[] = [];
+  const visitedErrorIndices = new Set<number>();
+
+  for (let i = 0; i < intermediateLines.length; i++) {
+    const line = intermediateLines[i];
+    if (line && errorPattern.test(line)) {
+      const actualLineNum = headLinesCount + i;
+      const start = Math.max(headLinesCount, actualLineNum - errorWindow);
+      const end = Math.min(totalLines - tailLinesCount, actualLineNum + errorWindow + 1);
+
+      let overlaps = false;
+      for (let j = start; j < end; j++) {
+        if (visitedErrorIndices.has(j)) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (!overlaps && errorSnippets.length < 3) {
+        for (let j = start; j < end; j++) visitedErrorIndices.add(j);
+        const snippet = lines.slice(start, end).map((l, idx) => `  L${start + idx + 1}: ${l}`).join("\n");
+        errorSnippets.push(`--- [Error Context Window around line ${actualLineNum + 1}] ---\n${snippet}`);
+      }
+    }
+  }
+
+  const parts: string[] = [];
+  parts.push(headLines.join("\n"));
+  parts.push(`\n... [Omitted ${totalLines - headLinesCount - tailLinesCount} intermediate lines] ...\n`);
+
+  if (errorSnippets.length > 0) {
+    parts.push(`🔍 **[Captured Intermediate Error Snippets]**\n${errorSnippets.join("\n\n")}\n\n... [Continuing to tail output] ...\n`);
+  }
+
+  parts.push(tailLines.join("\n"));
+
+  return {
+    text: parts.join("\n"),
+    truncated: true,
+  };
+}
+
 export function formatRunCommand(result: any, format: "markdown" | "json"): string {
   if (format === "json") return JSON.stringify(result, null, 2);
   const statusEmoji = result.exitCode === 0 ? "✅" : "❌";
-  const MAX_OUTPUT_CHARS = 64 * 1024;
-  const stdout = result.stdout
-    ? result.stdout.length > MAX_OUTPUT_CHARS
-      ? `${result.stdout.slice(0, MAX_OUTPUT_CHARS)}\n... [Output truncated at 64KB]`
-      : result.stdout
-    : "";
-  const stderr = result.stderr
-    ? result.stderr.length > MAX_OUTPUT_CHARS
-      ? `${result.stderr.slice(0, MAX_OUTPUT_CHARS)}\n... [Output truncated at 64KB]`
-      : result.stderr
-    : "";
+  const stdoutResult = result.stdout ? smartTruncateOutput(result.stdout) : null;
+  const stderrResult = result.stderr ? smartTruncateOutput(result.stderr) : null;
+
+  const stdout = stdoutResult ? stdoutResult.text : "";
+  const stderr = stderrResult ? stderrResult.text : "";
+  const logNote = result.logFile ? `\n> 📄 Full un-truncated output logged to: \`${result.logFile}\`` : "";
+
   return [
-    `${statusEmoji} Command: \`${result.command}\` (Exit Code: ${result.exitCode}, Duration: ${result.durationMs}ms)`,
+    `${statusEmoji} Command: \`${result.command}\` (Exit Code: ${result.exitCode}, Duration: ${result.durationMs}ms)${logNote}`,
     stdout ? `\n**Stdout:**\n\`\`\`\n${stdout}\n\`\`\`` : "",
     stderr ? `\n**Stderr:**\n\`\`\`\n${stderr}\n\`\`\`` : "",
   ].filter(Boolean).join("\n");

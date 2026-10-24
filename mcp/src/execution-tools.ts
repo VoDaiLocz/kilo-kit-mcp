@@ -117,6 +117,7 @@ export interface RunCommandResult {
   stdout: string;
   stderr: string;
   durationMs: number;
+  logFile?: string | undefined;
 }
 
 export function executeReadFile(repoRoot: string, input: ReadFileInput): ReadFileResult {
@@ -383,6 +384,40 @@ export function executeGrepCode(repoRoot: string, input: GrepCodeInput): GrepCod
   };
 }
 
+function persistRunLogIfLarge(
+  command: string,
+  exitCode: number,
+  durationMs: number,
+  stdout: string,
+  stderr: string,
+): string | undefined {
+  const totalChars = stdout.length + stderr.length;
+  if (totalChars <= 32 * 1024) return undefined;
+  try {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || "/tmp";
+    const runsDir = path.join(homeDir, ".kilo-kit", "runs");
+    if (!existsSync(runsDir)) {
+      mkdirSync(runsDir, { recursive: true });
+    }
+    const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const logFile = path.join(runsDir, `${runId}.log`);
+    const fullLog = [
+      `# Command: ${command}`,
+      `# Timestamp: ${new Date().toISOString()}`,
+      `# Exit Code: ${exitCode}`,
+      `# Duration: ${durationMs}ms`,
+      `--- STDOUT ---`,
+      stdout,
+      `--- STDERR ---`,
+      stderr,
+    ].join("\n");
+    writeFileSync(logFile, fullLog, "utf8");
+    return logFile;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function executeRunCommand(
   repoRoot: string,
   orchestrator: KiloOrchestrator,
@@ -409,21 +444,32 @@ export async function executeRunCommand(
       timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024,
     });
+    const durationMs = Date.now() - startTime;
+    const trimmedStdout = stdout.trim();
+    const trimmedStderr = stderr.trim();
+    const logFile = persistRunLogIfLarge(input.command, 0, durationMs, trimmedStdout, trimmedStderr);
     return {
       command: input.command,
       exitCode: 0,
-      stdout: stdout.trim(),
-      stderr: stderr.trim(),
-      durationMs: Date.now() - startTime,
+      stdout: trimmedStdout,
+      stderr: trimmedStderr,
+      durationMs,
+      logFile,
     };
   } catch (error: unknown) {
     const execError = error as { code?: number; stdout?: string; stderr?: string; message?: string };
+    const durationMs = Date.now() - startTime;
+    const exitCode = execError.code ?? 1;
+    const trimmedStdout = (execError.stdout ?? "").trim();
+    const trimmedStderr = (execError.stderr ?? execError.message ?? String(error)).trim();
+    const logFile = persistRunLogIfLarge(input.command, exitCode, durationMs, trimmedStdout, trimmedStderr);
     return {
       command: input.command,
-      exitCode: execError.code ?? 1,
-      stdout: (execError.stdout ?? "").trim(),
-      stderr: (execError.stderr ?? execError.message ?? String(error)).trim(),
-      durationMs: Date.now() - startTime,
+      exitCode,
+      stdout: trimmedStdout,
+      stderr: trimmedStderr,
+      durationMs,
+      logFile,
     };
   }
 }

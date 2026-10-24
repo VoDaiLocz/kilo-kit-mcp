@@ -34,12 +34,23 @@ export function routeIntent(
     .filter((candidate) => candidate.score > 0)
     .sort((left, right) => right.score - left.score || left.skill.id.localeCompare(right.skill.id));
 
-  const recommended: RouteRecommendation[] = ranked.slice(0, limit).map((candidate, index) => ({
-    skill: candidate.skill,
-    confidence: Math.max(0.1, Math.min(0.99, candidate.score / (candidate.score + 18 + index * 3))),
-    reason: candidate.reason,
-    score: candidate.score,
-  }));
+  const topScore = ranked[0]?.score || 0;
+  const runnerUpScore = ranked[1]?.score || 0;
+
+  const recommended: RouteRecommendation[] = ranked.slice(0, limit).map((candidate, index) => {
+    const saturation = candidate.score / (candidate.score + 25);
+    const margin = topScore > 0 ? Math.max(0, (topScore - (index === 0 ? runnerUpScore : 0)) / topScore) : 0;
+    const rankPenalty = index * 0.08;
+    const conf = 0.5 * saturation + 0.3 * (candidate.score / Math.max(topScore, 50)) + 0.2 * margin - rankPenalty;
+    const confidence = Math.max(0.1, Math.min(0.98, Math.round(conf * 100) / 100));
+
+    return {
+      skill: candidate.skill,
+      confidence,
+      reason: candidate.reason,
+      score: candidate.score,
+    };
+  });
 
   const workflow = buildWorkflow(registry, profile.mode, ranked);
   const decisionTrail = ranked.slice(0, 10).map<RouteDecisionEntry>((candidate) => ({

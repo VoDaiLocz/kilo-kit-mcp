@@ -185,7 +185,7 @@ export function executeGrillPlan(input: GrillPlanInput): GrillPlanResult {
   const combined = `${planText} ${contextText}`;
 
   const questions: GrillQuestion[] = [];
-  let riskScore = 15; // baseline
+  let riskScore = 20; // Evidence-based baseline
 
   // 1. Inversion / Catastrophic Failure Analysis (Luôn có)
   questions.push({
@@ -197,8 +197,8 @@ export function executeGrillPlan(input: GrillPlanInput): GrillPlanResult {
     recommendation: "Introduce defensive validation at every IO boundary and ensure graceful fallbacks exist.",
   });
 
-  // 2. Simplification cascade
-  if (combined.length > 200 || combined.includes("middleware") || combined.includes("database") || combined.includes("service") || combined.includes("manager") || combined.includes("provider")) {
+  // 2. Simplification cascade (Indirection check)
+  if (combined.includes("middleware") || combined.includes("manager") || combined.includes("provider") || combined.includes("factory") || combined.includes("abstract")) {
     questions.push({
       category: "simplification",
       title: "Simplification Cascade Check",
@@ -207,36 +207,36 @@ export function executeGrillPlan(input: GrillPlanInput): GrillPlanResult {
         "If you had to implement this cleanly in under 50 lines of code without extra helper abstractions, how would the architecture look?",
       recommendation: "Eliminate shallow wrapper layers and consolidate tightly-coupled logic into deep, concise modules.",
     });
-    riskScore += 20;
+    riskScore += 15;
   }
 
-  // 3. Blast radius & State Invalidation
-  if (combined.includes("delete") || combined.includes("remove") || combined.includes("override") || combined.includes("global") || combined.includes("state") || combined.includes("store") || combined.includes("context") || combined.includes("cache")) {
+  // 3. Blast radius & State Invalidation (Persistence / Schema / Global state)
+  if (combined.includes("database") || combined.includes("migration") || combined.includes("delete") || combined.includes("drop table") || combined.includes("override") || combined.includes("global") || combined.includes("store")) {
     questions.push({
       category: "blast_radius",
       title: "Blast Radius & State Invalidation",
-      concern: "Mutating shared, global, or persistent state can trigger cascading side-effects in dependent components.",
+      concern: "Mutating shared, global, or persistent state can trigger cascading side-effects or irreversible data corruption.",
       stressTestQuestion:
-        "Which other modules or UI views subscribe to or read this state? How is isolation and immutability guaranteed during updates?",
-      recommendation: "Keep changes localized, use immutable transitions, and write regression checks for all dependent consumers.",
+        "Which other modules or queries read this state? What is the rollback and schema backward-compatibility plan?",
+      recommendation: "Keep changes localized, preserve backward compatibility, and write migration tests.",
     });
     riskScore += 25;
   }
 
   // 4. Async Race Conditions & Error Boundaries
-  if (combined.includes("async") || combined.includes("promise") || combined.includes("fetch") || combined.includes("api") || combined.includes("stream") || combined.includes("effect") || combined.includes("load")) {
+  if (combined.includes("async") || combined.includes("promise") || combined.includes("fetch") || combined.includes("stream") || combined.includes("websocket")) {
     questions.push({
       category: "edge_case",
       title: "Async Race Conditions & Network Glitches",
-      concern: "Uncaught promise rejections, un-awaited operations, or race conditions when rapid user events occur.",
-      stressTestQuestion: "What happens if the user triggers a second action or navigates away before the pending async operation completes?",
-      recommendation: "Use AbortController, cleanup callbacks in useEffect/lifecycle, and guarantee idempotency.",
+      concern: "Uncaught promise rejections, un-awaited operations, or race conditions when rapid events occur.",
+      stressTestQuestion: "What happens if an async operation fails, hangs, or receives out-of-order responses?",
+      recommendation: "Use AbortController, timeout guards, and guarantee idempotent handlers.",
     });
-    riskScore += 20;
+    riskScore += 15;
   }
 
   // 5. UI / UX / Mobile Safety (Nếu là task UI / Frontend)
-  if (combined.includes("ui") || combined.includes("component") || combined.includes("react") || combined.includes("view") || combined.includes("button") || combined.includes("modal") || combined.includes("render") || combined.includes("layout")) {
+  if (combined.includes("ui") || combined.includes("component") || combined.includes("react") || combined.includes("layout") || combined.includes("css")) {
     questions.push({
       category: "edge_case",
       title: "UI Responsiveness, Layout Shift & Touch Safety",
@@ -244,8 +244,27 @@ export function executeGrillPlan(input: GrillPlanInput): GrillPlanResult {
       stressTestQuestion: "Does the UI remain functional and legible on 360px mobile viewports? Are touch targets at least 44x44px?",
       recommendation: "Apply design/aesthetic standards, ensure fluid responsive layouts, and include clear loading/empty/error states.",
     });
-    riskScore += 15;
+    riskScore += 10;
   }
+
+  // 6. Mitigating Factors: Evidence in plan reducing actual deployment risk
+  // Ensure we don't treat negative contexts (e.g. "without backup", "no tests") as mitigations
+  const hasTests = /(vitest|jest|pytest|playwright|tdd|\bunit test\b|\be2e test\b)/i.test(combined) && !/(no test|without test)/i.test(combined);
+  if (hasTests) {
+    riskScore -= 15;
+  }
+
+  const hasRollbackOrBackup = /(rollback plan|\bworktree\b|\bdry-run\b|create backup|automated backup)/i.test(combined) && !/(without backup|no backup|without rollback|no rollback)/i.test(combined);
+  if (hasRollbackOrBackup) {
+    riskScore -= 10;
+  }
+
+  const hasRuntimeValidation = /(zod|\btypeguard\b|input validation|schema validation|\bruntime check\b)/i.test(combined);
+  if (hasRuntimeValidation) {
+    riskScore -= 10;
+  }
+
+  riskScore = Math.max(5, Math.min(95, riskScore));
 
   let verdict: GrillPlanResult["readinessVerdict"] = "APPROVED";
   if (riskScore >= 40) {

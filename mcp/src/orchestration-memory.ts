@@ -639,6 +639,42 @@ export async function createSqliteOrchestrationMemory(
   };
 }
 
+function extractTokens(text: string): Set<string> {
+  const words = text.toLowerCase().match(/\b[a-z0-9_\-\.]{3,}\b/g) || [];
+  return new Set(words);
+}
+
+function calculateReflectionRelevance(
+  query: string,
+  taskMode: string,
+  r: LearningReflectionRecord,
+): { confidence: number; matchedWords: string[] } {
+  const qTokens = extractTokens(query);
+  if (qTokens.size === 0) {
+    const modeScore = r.taskMode === taskMode ? 0.7 : 0.4;
+    return { confidence: modeScore, matchedWords: [] };
+  }
+
+  const refText = `${r.taskSummary || ""} ${r.lessonsLearned || ""} ${r.correctApproach || ""}`;
+  const refTokens = extractTokens(refText);
+
+  const matched: string[] = [];
+  for (const token of qTokens) {
+    if (refTokens.has(token)) {
+      matched.push(token);
+    }
+  }
+
+  const overlapRatio = matched.length / qTokens.size;
+  const modeMatch = r.taskMode === taskMode ? 1.0 : (r.taskMode === "general" ? 0.5 : 0.2);
+
+  const rawConfidence = 0.7 * overlapRatio + 0.3 * modeMatch;
+  return {
+    confidence: Math.max(0.1, Math.min(0.98, Math.round(rawConfidence * 100) / 100)),
+    matchedWords: matched,
+  };
+}
+
 function buildSuggestions(
   facts: MemoryFact[],
   reflections: LearningReflectionRecord[] = [],
@@ -657,29 +693,39 @@ function buildSuggestions(
       applied: false,
     }));
 
-  const reflectionSuggestions: MemorySuggestion[] = reflections
+  const query = input.message || "";
+  const scoredReflections = reflections
     .filter((r) => r.lessonsLearned && r.lessonsLearned.trim().length > 0)
-    .filter((r) => !input.taskMode || r.taskMode === input.taskMode || r.taskMode === "general")
-    .slice(0, 3)
     .map((r) => {
+      const { confidence, matchedWords } = calculateReflectionRelevance(query, input.taskMode, r);
+      return { r, confidence, matchedWords };
+    })
+    .filter((item) => (query ? item.matchedWords.length > 0 : true))
+    .sort((a, b) => b.confidence - a.confidence);
+
+  const reflectionSuggestions: MemorySuggestion[] = scoredReflections
+    .slice(0, 3)
+    .map(({ r, confidence, matchedWords }) => {
       const shortSummary = r.taskSummary ? r.taskSummary.slice(0, 60) : "Previous session";
       const key = `lesson:${r.taskMode}:${r.id.slice(0, 8)}`;
+      const matchNote = matchedWords.length > 0 ? ` [Khớp từ khóa: ${matchedWords.slice(0, 3).join(", ")}]` : "";
       const avoids =
         r.wrongPathsEncountered && r.wrongPathsEncountered.length > 0
           ? ` Cần tránh: ${r.wrongPathsEncountered.slice(0, 2).join("; ")}.`
           : "";
       return {
         key,
-        title: `💡 [Bài học kinh nghiệm] ${shortSummary}`,
-        reason: `Bài học từ phiên trước: "${r.lessonsLearned.slice(0, 160)}${r.lessonsLearned.length > 160 ? "..." : ""}". Phương pháp đúng: "${r.correctApproach.slice(0, 100)}".${avoids}`,
+        title: `💡 [Bài học kinh nghiệm] ${shortSummary}${matchNote}`,
+        reason: `Bài học từ phiên trước (Độ tin cậy: ${Math.round(confidence * 100)}%): "${r.lessonsLearned.slice(0, 160)}${r.lessonsLearned.length > 160 ? "..." : ""}". Phương pháp đúng: "${r.correctApproach.slice(0, 100)}".${avoids}`,
         value: {
           reflectionId: r.id,
           taskMode: r.taskMode,
           lessonsLearned: r.lessonsLearned,
           correctApproach: r.correctApproach,
           wrongPathsEncountered: r.wrongPathsEncountered,
+          matchedKeywords: matchedWords,
         },
-        confidence: 0.95,
+        confidence,
         requiresConfirmation: false,
         applied: true,
       };

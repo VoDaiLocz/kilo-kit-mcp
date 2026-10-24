@@ -11,6 +11,15 @@ export type OrchestrationState =
   | "ready"
   | "blocked";
 
+export type TaskTier = "tier_0_inspect" | "tier_1_micro" | "tier_2_standard" | "tier_3_heavy";
+
+export interface TaskTierClassification {
+  tier: TaskTier;
+  reason: string;
+  autoApproved: boolean;
+  requiresCognitiveGate: boolean;
+}
+
 export type QuestionKind = "text" | "choice" | "confirmation";
 
 export interface OrchestrationQuestion {
@@ -63,6 +72,7 @@ export interface MemorySuggestionInput {
   taskMode: string;
   workflowSkillIds: string[];
   projectFingerprint?: string;
+  message?: string;
 }
 
 export interface MemoryDecision {
@@ -247,6 +257,7 @@ export interface OrchestrationResult {
   state: OrchestrationState;
   message: string;
   taskMode: string;
+  taskTier?: TaskTierClassification | undefined;
   questions: OrchestrationQuestion[];
   missingInfo: string[];
   route: RouteIntentResult;
