@@ -262,6 +262,10 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           .optional()
           .describe("Ratings and feedback for specific skills used."),
         lessonsLearned: z.string().min(1).max(2000).describe("Key invariant or takeaway for future tasks."),
+        autoSynthesizeSkill: z
+          .boolean()
+          .optional()
+          .describe("Hermes-inspired: If true, automatically synthesize this reflection into a reusable SKILL.md in skills/learned/"),
         sessionId: z.string().max(120).optional().describe("Optional session ID."),
         format: formatSchema.optional(),
       },
@@ -278,6 +282,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
       wrongPathsEncountered,
       skillsEvaluated,
       lessonsLearned,
+      autoSynthesizeSkill,
       sessionId,
       format,
     }) => {
@@ -290,6 +295,25 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
         lessonsLearned,
         ...(sessionId ? { sessionId } : {}),
       });
+
+      let autoSynthesizedMessage = "";
+      if (autoSynthesizeSkill) {
+        try {
+          const rawName = taskSummary.slice(0, 35).replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "-").toLowerCase();
+          const synth = await executeSynthesizeSkill(repoRoot, registry, {
+            skillName: rawName || `learned-${taskMode}`,
+            problemDescription: `${taskSummary}. Wrong paths avoided: ${wrongPathsEncountered.join("; ")}`,
+            solutionPattern: `${correctApproach}. Key lesson: ${lessonsLearned}`,
+            verificationGuidance: "Verify with automated unit test runner and confirm zero regressions.",
+            keywords: [taskMode, "self-authored-skill", ...wrongPathsEncountered.slice(0, 2)],
+            category: "learned",
+          });
+          autoSynthesizedMessage = `\n\n> 🚀 **[HERMES SELF-AUTHORING SKILL SYNTHESIZED]**: Đã tự động tạo kỹ năng mới \`${synth.skillId}\` tại \`${synth.skillPath}\` và nạp vào Skill Registry thành công!`;
+        } catch (e) {
+          autoSynthesizedMessage = `\n\n> ⚠️ Không thể tự động tạo skill: ${e instanceof Error ? e.message : String(e)}`;
+        }
+      }
+
       sentinel.recordPostExecution({
         sessionId: record.sessionId || record.id,
         toolName: "kilo_record_reflection",
@@ -319,7 +343,7 @@ export async function createKiloKitServer(options: CreateKiloKitServerOptions = 
           "",
           record.lessonsLearned,
           "",
-          "Saved to SQLite memory for future autonomous retrieval.",
+          "Saved to SQLite memory with FTS5 Full-Text Search indexing for autonomous retrieval." + autoSynthesizedMessage,
         ].join("\n"),
       );
     },

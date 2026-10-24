@@ -115,4 +115,47 @@ describe("orchestration memory", () => {
     expect(report.reflections).toHaveLength(1);
     expect(report.reflections[0]?.lessonsLearned).toContain("Capacitor mobile audio bridge");
   });
+
+  it("retrieves relevant reflections using SQLite FTS5 BM25 ranking (Hermes-Agent pattern)", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "kilo-c4-fts5-"));
+    const filePath = path.join(dir, "orchestrator.sqlite");
+    const memory = await createSqliteOrchestrationMemory({ filePath });
+
+    // Lesson 1: Database & Migration
+    memory.recordReflection({
+      sessionId: "session-db-1",
+      taskMode: "backend",
+      taskSummary: "PostgreSQL Prisma migration deadlock with connection pool exhaustion",
+      correctApproach: "Set max connections pool limit and use advisory locks for Prisma migrations",
+      wrongPathsEncountered: ["Running migrations concurrently without advisory lock"],
+      lessonsLearned: "Always constrain database connection pool and run migrations in serialized transaction.",
+    });
+
+    // Lesson 2: CSS / UI Layout
+    memory.recordReflection({
+      sessionId: "session-ui-1",
+      taskMode: "ui",
+      taskSummary: "Tailwind v4 responsive layout shift on mobile 360px viewport",
+      correctApproach: "Use container queries and touch target minimum 44px for navigation menu",
+      wrongPathsEncountered: ["Hardcoding absolute px widths"],
+      lessonsLearned: "Always use fluid viewport units and container queries for mobile responsiveness.",
+    });
+
+    // Query specifically about database migration
+    const suggestions = memory.suggest({
+      taskMode: "backend",
+      message: "We encountered a database migration deadlock error in PostgreSQL pool",
+      workflowSkillIds: [],
+    });
+
+    // Must find and suggest the Prisma database lesson with high confidence
+    const dbLesson = suggestions.find((s) => s.key.startsWith("lesson:"));
+    expect(dbLesson).toBeDefined();
+    expect(dbLesson?.title).toContain("PostgreSQL Prisma migration deadlock");
+    expect(dbLesson?.confidence).toBeGreaterThanOrEqual(0.7);
+
+    // Must NOT suggest the UI/CSS lesson for a database query
+    const uiLesson = suggestions.find((s) => s.title.includes("Tailwind v4"));
+    expect(uiLesson).toBeUndefined();
+  });
 });

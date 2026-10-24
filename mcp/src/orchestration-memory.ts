@@ -251,6 +251,23 @@ export async function createSqliteOrchestrationMemory(
       lessons_learned TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    -- Hermes-Agent inspired: FTS5 Full-Text Search with BM25 ranking for reflections
+    CREATE VIRTUAL TABLE IF NOT EXISTS learning_reflections_fts USING fts5(
+      reflection_id UNINDEXED,
+      task_mode,
+      task_summary,
+      correct_approach,
+      lessons_learned,
+      tokenize = 'unicode61'
+    );
+
+    -- Sync any existing reflections into FTS5 table
+    INSERT INTO learning_reflections_fts (reflection_id, task_mode, task_summary, correct_approach, lessons_learned)
+    SELECT id, task_mode, task_summary, correct_approach, lessons_learned
+    FROM learning_reflections
+    WHERE id NOT IN (SELECT reflection_id FROM learning_reflections_fts);
+
     CREATE TABLE IF NOT EXISTS katl_trajectories (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
@@ -331,7 +348,7 @@ export async function createSqliteOrchestrationMemory(
         );
     },
     suggest(input) {
-      return buildSuggestions(allFacts(database), allReflections(database), input);
+      return buildSuggestions(allFacts(database), allReflections(database), input, database);
     },
     recordDecision(decision) {
       database
@@ -409,6 +426,19 @@ export async function createSqliteOrchestrationMemory(
           reflection.lessonsLearned,
           createdAt,
         );
+
+      try {
+        database
+          .prepare(
+            `INSERT INTO learning_reflections_fts
+               (reflection_id, task_mode, task_summary, correct_approach, lessons_learned)
+             VALUES (?, ?, ?, ?, ?)`,
+          )
+          .run(id, reflection.taskMode, reflection.taskSummary, reflection.correctApproach, reflection.lessonsLearned);
+      } catch {
+        // Fallback gracefully if FTS is unavailable
+      }
+
       return {
         id,
         sessionId: reflection.sessionId,
@@ -675,10 +705,67 @@ function calculateReflectionRelevance(
   };
 }
 
+function searchFtsReflections(
+  database: import("node:sqlite").DatabaseSync,
+  query: string,
+  taskMode?: string,
+  limit = 5,
+): Array<{ r: LearningReflectionRecord; confidence: number; matchedWords: string[] }> {
+  const tokens = query.match(/[\p{L}\p{N}_]+/gu) || [];
+  const meaningfulTokens = tokens.filter(
+    (t) => t.length > 1 && !/^(và|là|có|được|cho|với|của|the|is|in|at|on|for|to|with)$/i.test(t),
+  );
+  if (meaningfulTokens.length === 0) return [];
+
+  const ftsQuery = meaningfulTokens.map((t) => `"${t}"`).join(" OR ");
+  try {
+    const stmt = database.prepare(`
+      SELECT 
+        r.*,
+        bm25(learning_reflections_fts) as rank
+      FROM learning_reflections_fts fts
+      JOIN learning_reflections r ON r.id = fts.reflection_id
+      WHERE learning_reflections_fts MATCH ?
+      ORDER BY rank ASC
+      LIMIT ?
+    `);
+    const rows = (stmt.all as (...args: unknown[]) => unknown[])(ftsQuery, limit * 2) as unknown as Array<
+      SqliteReflectionRow & { rank: number }
+    >;
+
+    return rows.map((row) => {
+      const rec: LearningReflectionRecord = {
+        id: row.id,
+        sessionId: row.session_id ?? undefined,
+        taskMode: row.task_mode,
+        taskSummary: row.task_summary,
+        correctApproach: row.correct_approach,
+        wrongPathsEncountered: JSON.parse(row.wrong_paths_json || "[]") as string[],
+        skillsEvaluated: JSON.parse(row.skills_evaluated_json || "[]") as LearningReflectionRecord["skillsEvaluated"],
+        lessonsLearned: row.lessons_learned,
+        createdAt: row.created_at,
+      };
+
+      const { confidence, matchedWords } = calculateReflectionRelevance(query, taskMode || "general", rec);
+      const bm25Boost = Math.max(0, Math.min(0.2, Math.abs(row.rank) * 1000));
+      const calibratedConfidence = Math.min(0.95, Math.max(confidence, confidence + bm25Boost));
+
+      return {
+        r: rec,
+        confidence: Math.round(calibratedConfidence * 100) / 100,
+        matchedWords,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 function buildSuggestions(
   facts: MemoryFact[],
   reflections: LearningReflectionRecord[] = [],
   input: MemorySuggestionInput,
+  database?: import("node:sqlite").DatabaseSync,
 ): MemorySuggestion[] {
   const factSuggestions = facts
     .filter((fact) => fact.confidence >= 0.7)
@@ -694,14 +781,26 @@ function buildSuggestions(
     }));
 
   const query = input.message || "";
-  const scoredReflections = reflections
-    .filter((r) => r.lessonsLearned && r.lessonsLearned.trim().length > 0)
-    .map((r) => {
-      const { confidence, matchedWords } = calculateReflectionRelevance(query, input.taskMode, r);
-      return { r, confidence, matchedWords };
-    })
-    .filter((item) => (query ? item.matchedWords.length > 0 : true))
-    .sort((a, b) => b.confidence - a.confidence);
+  let scoredReflections: Array<{ r: LearningReflectionRecord; confidence: number; matchedWords: string[] }> = [];
+
+  if (database && query) {
+    const ftsResults = searchFtsReflections(database, query, input.taskMode, 5);
+    if (ftsResults.length > 0) {
+      scoredReflections = ftsResults;
+    }
+  }
+
+  // Fallback to in-memory reflection scoring if FTS returned nothing or database is in-memory
+  if (scoredReflections.length === 0) {
+    scoredReflections = reflections
+      .filter((r) => r.lessonsLearned && r.lessonsLearned.trim().length > 0)
+      .map((r) => {
+        const { confidence, matchedWords } = calculateReflectionRelevance(query, input.taskMode, r);
+        return { r, confidence, matchedWords };
+      })
+      .filter((item) => (query ? item.matchedWords.length > 0 : true))
+      .sort((a, b) => b.confidence - a.confidence);
+  }
 
   const reflectionSuggestions: MemorySuggestion[] = scoredReflections
     .slice(0, 3)
