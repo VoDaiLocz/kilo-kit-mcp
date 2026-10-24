@@ -7,7 +7,6 @@
 <p align="center">
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/stargazers"><img src="https://img.shields.io/github/stars/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=github&label=Stars&color=18181b&labelColor=0f172a" alt="GitHub stars"></a>
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=git&label=Last%20commit&color=22c55e&labelColor=0f172a" alt="Last commit"></a>
-  <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/VoDaiLocz/kilo-kit-mcp?style=for-the-badge&logo=github&label=Contributors&color=f97316&labelColor=0f172a" alt="Contributors"></a>
   <a href="https://github.com/VoDaiLocz/kilo-kit-mcp/actions/workflows/publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/VoDaiLocz/kilo-kit-mcp/publish.yml?style=for-the-badge&logo=githubactions&label=Publish&color=22c55e&labelColor=0f172a" alt="Publish workflow"></a>
   <a href="https://www.npmjs.com/package/@vodailocz/kilo-kit-mcp"><img src="https://img.shields.io/npm/v/@vodailocz/kilo-kit-mcp?style=for-the-badge&logo=npm&label=npm&color=ef4444&labelColor=0f172a" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@vodailocz/kilo-kit-mcp"><img src="https://img.shields.io/npm/dm/@vodailocz/kilo-kit-mcp?style=for-the-badge&logo=npm&label=downloads&color=0284c7&labelColor=0f172a" alt="npm downloads"></a>
@@ -15,40 +14,101 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/skills-180-06b6d4?style=for-the-badge&labelColor=0f172a" alt="180 skills">
-  <img src="https://img.shields.io/badge/tools-24%20MCP-10b981?style=for-the-badge&labelColor=0f172a" alt="24 MCP tools">
-  <img src="https://img.shields.io/badge/MCP-ready-14b8a6?style=for-the-badge&logo=modelcontextprotocol&labelColor=0f172a" alt="MCP ready">
-  <img src="https://img.shields.io/badge/Codex-ready-111827?style=for-the-badge&logo=openai&labelColor=0f172a" alt="Codex ready">
+  <img src="https://img.shields.io/badge/Tests-77%2F77%20Passing-22c55e?style=for-the-badge&logo=vitest&labelColor=0f172a" alt="77 Vitest Passing">
+  <img src="https://img.shields.io/badge/Doctor-18%2F18%20Healthy-10b981?style=for-the-badge&logo=stethoscope&labelColor=0f172a" alt="Doctor 18/18 Healthy">
+  <img src="https://img.shields.io/badge/Skills-180%20Curated-06b6d4?style=for-the-badge&labelColor=0f172a" alt="180 skills">
+  <img src="https://img.shields.io/badge/Tools-24%20MCP-8b5cf6?style=for-the-badge&labelColor=0f172a" alt="24 MCP tools">
+  <img src="https://img.shields.io/badge/Memory-SQLite%20FTS5%20BM25-f59e0b?style=for-the-badge&logo=sqlite&labelColor=0f172a" alt="SQLite FTS5">
   <img src="https://img.shields.io/badge/Node-%3E%3D20-339933?style=for-the-badge&logo=nodedotjs&labelColor=0f172a" alt="Node >=20">
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=for-the-badge&logo=typescript&labelColor=0f172a" alt="TypeScript 5.9">
 </p>
 
-# Kilo-Kit: Autonomous Cognitive Flow & Quality Engine for AI Coding Agents
+---
+
+# 🚀 Kilo-Kit: The Autonomous Cognitive Cortex & Governed Agency Substrate for AI Coding Agents
 
 > **Version:** 1.9.1  
-> **Author:** Kilo-Kit Team  
+> **Architecture Standard:** C4 Cognitive Protocol v3.0  
 > **License:** Apache 2.0  
+> **Official Repository:** [https://github.com/VoDaiLocz/KILO-KIT](https://github.com/VoDaiLocz/KILO-KIT)
 
-Kilo-Kit is an agentic MCP runtime and curated 180-skill catalog designed to enforce grounded diagnosis, Tree-of-Thoughts architectural planning, adversarial red-teaming, 4D quality verification, and continuous SQLite self-improvement for AI coding assistants.
+**Kilo-Kit** is an enterprise-grade agentic Model Context Protocol (MCP) cognitive engine, supervisor middleware, and curated 180-skill catalog. It provides the **governed autonomy substrate** required to turn raw LLM coding assistants into disciplined, self-correcting software engineers.
 
-### 🧠 Core Architectural Pillars:
-1. **Division of Labor (Cortex vs Limbs):** Kilo-Kit acts as the high-level cognitive brain (Tree of Thoughts, 5-Whys root cause analysis, adversarial stress-testing, context compaction) while host clients handle surgical I/O.
-2. **Kilo-Sentinel Supervisor & Circuit Breaker:** Real-time middleware enforcing Pre-flight Grounding Locks (no editing unread files), loop tripwires (identical call and edit-thrashing detection), and SQLite trajectory logging (`katl_trajectories`).
-3. **Triangulated Cognitive Synthesis & Low-Confidence Escalation:** Combines internal SQLite memory recall, GitHub 10k+ stars patterns, and ToT DAG benchmarking (`kilo_triangulate_research`), with automatic subagent delegation when confidence < 0.70.
-4. **Fuzzy Skill & Alias Resolver:** Instant, resilient skill loading with support for aliases (`brainstorming`, `diagnose`, `playwright`, `clean-code`, `tdd`, `grounded-research-benchmark`).
-5. **4D Quality Assurance & Playwright E2E Gate:** Validates Given-When-Then acceptance criteria, clean code interfaces, UI/UX aesthetics, and automated Playwright browser/DOM verification before work is marked complete.
+Inspired by cutting-edge autonomous agent architectures (**NousResearch Hermes-Agent**, **SWE-agent**, **Cursor Cascade**, and **Devin**), Kilo-Kit bridges the fatal gap between wild unbounded agency (which causes hallucinated refactoring and infinite token thrashing) and rigid bureaucratic form-filling through **Macro-Determinism & Micro-Agency**.
 
 ---
 
-## 🏛️ System Architecture & Division of Labor
+## ⚡ Key Architectural Innovations
 
-Kilo-Kit enforces a strict architectural boundary between **High-Level Cognitive Reasoning (Cortex)** and **Surgical I/O Execution (Limbs)**:
+```
+           ┌─────────────────────────────────────────────────────────────┐
+           │                   KILO-KIT COGNITIVE CORTEX                 │
+           │                                                             │
+           │   ┌────────────────────┐       ┌────────────────────────┐   │
+           │   │ 4-Tier Adaptive    │       │ Hermes SQLite FTS5     │   │
+           │   │ Task Gating        │       │ BM25 Memory Engine     │   │
+           │   └─────────┬──────────┘       └───────────▲────────────┘   │
+           │             │                              │                │
+           │             ▼                              │                │
+           │   ┌────────────────────┐       ┌───────────┴────────────┐   │
+           │   │ 5-Gate C4          │──────▶│ Self-Authoring Skills  │   │
+           │   │ State Machine      │       │ & Continuous Reflexion │   │
+           │   └─────────┬──────────┘       └────────────────────────┘   │
+           │             │                                               │
+           └─────────────┼───────────────────────────────────────────────┘
+                         │ JSON-RPC Protocol Interceptor
+                         ▼
+           ┌─────────────────────────────────────────────────────────────┐
+           │              KILO-SENTINEL SUPERVISOR MIDDLEWARE            │
+           │   • Pre-Flight Grounding Lock (No unread file mutations)    │
+           │   • Loop & Thrashing Tripwire (Max 3 consecutive repeats)   │
+           │   • Smart Truncation (20/80 Rule + Intermediate Sniffer)    │
+           └─────────────────────────────────────────────────────────────┘
+```
+
+### 1. 🚦 4-Tier Adaptive Task Gating (Zero-Friction Fast-Path)
+Eliminates ritualistic bureaucratic overhead for trivial operations while maintaining ironclad safety for dangerous modifications:
+* **Tier 0 (`tier_0_inspect`):** Read-only exploration, searches, grep, file views. Bypasses planning gates immediately (`state: ready`).
+* **Tier 1 (`tier_1_micro`):** Single-line bug fixes, typo corrections, linter warnings. Fast-path authorization with lightweight verification.
+* **Tier 2 (`tier_2_feature`):** Multistage features, component implementations, refactoring. Requires Tree-of-Thoughts DAG planning (`kilo_think_step`) and skill delivery.
+* **Tier 3 (`tier_3_critical`):** Database migrations, security auth workflows, broad architectural refactors. Mandatory Adversarial Red-Team grilling (`kilo_grill_plan`) and formal verification checkpoint.
+
+### 2. 🔍 Hermes-Agent Inspired SQLite FTS5 with BM25 Lexical Ranking
+Upgrades agentic persistent memory from fragile keyword matching to **sub-millisecond full-text lexical ranking**:
+* Native SQLite `FTS5` virtual table with `unicode61` tokenization.
+* BM25 score calculation prioritizes historically verified solutions and architectural ADRs over stale logs.
+* Dynamically injects hyper-relevant past failure modes and lessons into the agent's context before planning begins.
+
+### 3. ✍️ Self-Authoring Skills & Autonomous Evolution
+When an agent encounters and overcomes a novel, complex debugging scenario:
+* At Gate 5 reflection (`kilo_record_reflection`), passing `autoSynthesizeSkill: true` distills the solution trajectory into a structured, validated `SKILL.md` document in `skills/learned/`.
+* Next time any client or agent encounters a matching intent, the newly self-authored skill is instantly discoverable via `kilo_get_skill`.
+
+### 4. ✂️ Smart Truncation & Intermediate Error Sniffer (20/80 Rule)
+Terminal logs and test outputs exceeding token budgets no longer cause attention degradation or lost-in-the-middle failure:
+* Preserves the first 30 lines (command flags, environment setup, targets).
+* Scans and preserves **all intermediate exceptions** (`TypeError`, `FAIL`, `SyntaxError`, `panic`, `AssertionError`).
+* Preserves the last 120 lines (final stack trace, assertion summary, exit code).
+* Offloads raw unbounded stream to `.kilo-kit/runs/<runId>.log` for full auditability.
+
+### 5. 🏥 Deep Empirical Diagnostics (`kilo-kit-doctor`)
+A zero-ambiguity health suite verifying **18 real-world environmental checkpoints**:
+* Resolves true binary paths in `$PATH` (differentiating local linked binaries from remote npx packages).
+* Runs `PRAGMA integrity_check` on SQLite and validates live query response on FTS5 tables.
+* Audits each host client rule file independently.
+* Executes a **live MCP functional tool probe** on `kilo_sentinel_status` to prove end-to-end JSON-RPC responsiveness.
+
+---
+
+## 🏛️ System Topology: Cortex vs. Limbs
+
+Kilo-Kit enforces a strict architectural boundary between **Cognitive Reasoning (Cortex)** and **Surgical Execution (Limbs)**:
 
 ```mermaid
 flowchart TD
-    Clients["🖥️ Host AI Clients<br/>(Claude Code / Antigravity / Cursor / Gemini CLI)"]
+    Clients["🖥️ Host AI Clients<br/>(GitHub Copilot / Cursor / Windsurf / Claude / Gemini)"]
     
-    Sentinel["🛡️ Kilo-Sentinel Supervisor & Circuit Breaker<br/>(Pre-flight Grounding Lock • Loop Tripwire • Step Budget)"]
+    Sentinel["🛡️ Kilo-Sentinel Supervisor & Middleware<br/>(Pre-flight Grounding Lock • Loop Tripwire • Step Budget)"]
     
     subgraph Cortex["🧠 Kilo-Kit Cognitive Cortex (MCP Runtime)"]
         direction TB
@@ -61,7 +121,7 @@ flowchart TD
         C4 --> Limbs
     end
     
-    DB[("💾 SQLite Atomic Memory<br/>(cognitive_triangulations • katl_trajectories • facts)")]
+    DB[("💾 SQLite Atomic Memory<br/>(FTS5 BM25 • sessions • reflections • facts)")]
     
     Clients <-->|MCP Protocol / stdio| Sentinel
     Sentinel <--> Cortex
@@ -70,26 +130,24 @@ flowchart TD
 
 ---
 
-## 🔄 C4 Cognitive Lifecycle & Low-Confidence Escalator
+## 🔄 The C4 5-Gate Cognitive Lifecycle
 
-All agent tasks flow through a deterministic 5-Gate state machine. Unauthorized file mutations prior to Gate 3 approval are blocked at the server level:
+All agent actions follow an enforceable state machine. Unauthorized mutations before Gate 3 approval are blocked at the protocol level:
 
 ```mermaid
 flowchart LR
-    G1["<b>Gate 1: Grounded Probe</b><br/>• Memory Recall<br/>• Codebase Probe"]
+    G1["<b>Gate 1: Grounded Probe</b><br/>• BM25 Memory Recall<br/>• Exploratory Read"]
     
-    G2["<b>Gate 2: Cognitive Reasoning</b><br/>• 3-Option ToT DAG<br/>• Adversarial Grill<br/>• Low-Confidence Escalator"]
+    G2["<b>Gate 2: Cognitive Reasoning</b><br/>• 3-Option ToT DAG<br/>• Adversarial Grill<br/>• 5-Whys Root Cause"]
     
-    G3["<b>Gate 3: Approval</b><br/>• Plan Locked<br/>• Skills Injected"]
+    G3["<b>Gate 3: Approval</b><br/>• Plan Locked<br/>• Skill Injected"]
     
     G4["<b>Gate 4: Execution</b><br/>• Defense-in-Depth<br/>• Sentinel Guarded"]
     
-    G5["<b>Gate 5: 4D QA</b><br/>• Playwright E2E<br/>• SQLite Reflection"]
+    G5["<b>Gate 5: 4D QA</b><br/>• Empirical Tests<br/>• SQLite Reflection"]
 
     G1 --> G2
-    G2 -->|Confidence >= 0.70| G3
-    G2 -.->|Confidence < 0.70<br/>Escalation| Subagent["🔬 Research Subagent<br/>(GitHub & Docs Sandbox)"]
-    Subagent -.-> G2
+    G2 --> G3
     G3 --> G4
     G4 --> G5
     G4 -.->|3x Loop Detected| Breaker["🛑 Circuit Breaker<br/>(Supervised Reset)"]
@@ -98,47 +156,25 @@ flowchart LR
 
 ---
 
-## 🛡️ Protocol-Level Hard-Gate Enforcement
-
-Traditional prompt rules (`.cursorrules`, `CLAUDE.md`) suffer from prompt drift. Kilo-Kit enforces safety via **JSON-RPC Interceptor Middleware**:
-
-```mermaid
-flowchart TD
-    Req["👤 User Prompt"] --> Agent["🤖 Host AI Agent"]
-    
-    Agent -->|1. Unauthorized Edit Attempt| GateCheck{"🛡️ Kilo-Sentinel<br/>Pre-Flight Lock"}
-    GateCheck -->|❌ Uninitialized / Unread File| Blocked["🛑 403 Hard-Gate Blocked<br/>(Forces Planning First)"]
-    
-    Blocked --> Plan["🧠 Gate 1 & 2: C4 Planning<br/>(kilo_orchestrate_task + kilo_triangulate_research)"]
-    Plan --> SaveDB[("💾 Commit CoT to SQLite")]
-    SaveDB --> Approval["👤 User Approves Plan"]
-    
-    Approval -->|2. Authorized Execution| GateCheck
-    GateCheck -->|✅ State = READY| Exec["🚀 Gate 4: Safe Execution<br/>(kilo_write_file / kilo_edit_file)"]
-    Exec --> Verify["✅ Gate 5: 4D Verification & SQLite Reflection"]
-```
-
----
-
 ## 🧰 The 24 All-in-One MCP Tools Suite
 
-Kilo-Kit provides a complete, self-contained execution and cognitive runtime:
+Kilo-Kit provides a complete, battery-included suite of cognitive and execution tools:
 
 | Category | Tool | Description |
 | :--- | :--- | :--- |
-| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Enforces brainstorming and cognitive steps before code mutation. |
+| **Gating & Orchestration** | `kilo_orchestrate_task` | C4 closed-loop gate. Classifies task tier and enforces planning before code mutation. |
 | | `kilo_route_intent` | Routes intent to best workflow chains, task modes, and rules. |
-| | `kilo_get_skill` | Loads curated `SKILL.md` workflows with token-safe truncation and session tracking. |
+| | `kilo_get_skill` | Loads curated `SKILL.md` workflows with fuzzy alias resolution. |
 | | `kilo_search_skills` | High-precision semantic and keyword search across 180 skills. |
 | | `kilo_memory_report` | Inspects persistent SQLite decisions, facts, and sessions. |
 | | `kilo_remember_fact` | Pins immutable operational rules and architectural decisions into SQLite `memory_facts`. |
-| | `kilo_record_reflection` | **Self-Improvement**: Persists reflections, correct/wrong paths, and lessons to SQLite. |
+| | `kilo_record_reflection` | **Self-Improvement**: Persists reflections, correct/wrong paths, and BM25 index. |
 | | `kilo_route_report` | Reports route telemetry, top skills, workflows, scores, and conflict penalties. |
 | | `kilo_validate_skills` | Validates entire skill catalog against the quality gate. |
-| **Cognitive Reasoning** | `kilo_triangulate_research` | **Grounded Synthesis & Low-Confidence Escalator**: Combines SQLite memory + GitHub grounding + 3-option ToT DAG, atomically commits reasoning to SQLite, and triggers research escalation when confidence < 0.70. |
-| | `kilo_think_step` | **Tree of Thoughts DAG**: Step-by-step reasoning, 3-option trade-off matrix & hypothesis branching. |
-| | `kilo_grill_plan` | **Adversarial Red-Teaming**: Inversion, simplification, mobile touch & concurrency stress testing. |
-| | `kilo_trace_root_cause` | **5-Whys Diagnostic Engine**: Recursive causal back-propagation with regression test scaffolding. |
+| **Cognitive Reasoning** | `kilo_triangulate_research` | **Grounded Synthesis**: Combines SQLite memory + GitHub grounding + 3-option ToT DAG. |
+| | `kilo_think_step` | **Tree of Thoughts DAG**: Step-by-step reasoning & 3-option trade-off matrix. |
+| | `kilo_grill_plan` | **Adversarial Red-Teaming**: Inversion, simplification, and mobile touch stress testing. |
+| | `kilo_trace_root_cause` | **5-Whys Diagnostic Engine**: Recursive causal back-propagation with test scaffolding. |
 | | `kilo_compact_context` | **Cognitive Compactor**: 40-70% token savings while locking invariants. |
 | | `kilo_synthesize_skill` | **Self-Evolution**: Distills solved patterns into reusable skills. |
 | **Sentinel & Supervision** | `kilo_sentinel_status` | **Supervisor Telemetry**: Inspects circuit breaker state, step budget, and grounded files list. |
@@ -149,13 +185,99 @@ Kilo-Kit provides a complete, self-contained execution and cognitive runtime:
 | | `kilo_grep_code` | Line-by-line regex and substring search. |
 | | `kilo_write_file` | Atomic write with **Protocol Hard-Gate**, clean-code smell audit, and secret detection. |
 | | `kilo_edit_file` | Targeted search-and-replace with **JSON syntax & bracket balancing audit**. |
-| | `kilo_run_command` | Defense-in-depth terminal execution with **security guardrails & command injection filtering**. |
+| | `kilo_run_command` | Defense-in-depth terminal execution with **security guardrails & smart truncation**. |
+
+---
+
+## 💻 Multi-Client Configuration Guide
+
+Kilo-Kit works seamlessly across all major AI IDEs and command-line agents.
+
+### One-Command Auto-Setup
+Automatically register Kilo-Kit across all detected clients on your machine:
+```bash
+# Configure all clients to use direct local binary (0ms latency, latest build)
+kilo-kit-setup --local
+
+# Or configure via npx remote package
+kilo-kit-setup --npx
+```
+
+### Manual Configuration Snippets
+
+#### 1. GitHub Copilot (`~/.copilot/mcp-config.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "kilo-kit-mcp"
+    }
+  }
+}
+```
+
+#### 2. Cursor IDE (`~/.cursor/mcp.json` or `.cursor/mcp.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "kilo-kit-mcp"
+    }
+  }
+}
+```
+
+#### 3. Claude Code (`~/.claude.json`) & Claude Desktop
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "kilo-kit-mcp"
+    }
+  }
+}
+```
+
+#### 4. Windsurf IDE (`~/.codeium/windsurf/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "kilo-kit-mcp"
+    }
+  }
+}
+```
+
+#### 5. Google Antigravity & Gemini CLI (`~/.gemini/antigravity-cli/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "kilo-kit": {
+      "command": "kilo-kit-mcp"
+    }
+  }
+}
+```
+
+#### 6. OpenCode (`~/.config/opencode/opencode.jsonc`)
+```jsonc
+{
+  "mcp": {
+    "kilo-kit": {
+      "type": "local",
+      "command": ["kilo-kit-mcp"],
+      "enabled": true
+    }
+  }
+}
+```
 
 ---
 
 ## 📚 180 Curated Skills Catalog Taxonomy
 
-Skills are organized into 6 functional modules with instant alias mapping:
+Skills are organized into 6 functional domains with instant fuzzy alias resolution:
 
 ```
 skills/
@@ -177,94 +299,43 @@ skills/
     ├── devops, server-management, chrome-devtools, performance-profiling, render-deploy
 ```
 
-**Fuzzy Alias Resolution:** Calling `kilo_get_skill("brainstorming")` automatically loads `productivity/brainstorming/SKILL.md`.
-
----
-
-## ⚡ Quick Start
-
-### 1. Fast Setup (Recommended)
-Install globally and automatically configure all detected AI clients (Cursor, Claude, Windsurf, Antigravity, Gemini):
-
-```bash
-npm install -g @vodailocz/kilo-kit-mcp
-kilo-kit-init global
-```
-
-Verify system health:
-```bash
-kilo-kit-doctor
-```
-
-### 2. Zero-Install NPX (IDE Direct Integration)
-Add Kilo-Kit directly to your client's MCP configuration without installing globally:
-
-```json
-{
-  "mcpServers": {
-    "kilo-kit": {
-      "command": "npx",
-      "args": ["-y", "@vodailocz/kilo-kit-mcp"]
-    }
-  }
-}
-```
-*Supported in Cursor (`.cursor/mcp.json`), Claude Desktop (`claude_desktop_config.json`), Windsurf, and Antigravity / Gemini CLI.*
-
-### 3. Team Repository Rollout
-Bootstrap the Kilo-Kit C4 Cognitive Protocol into your project repository (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`):
-
-```bash
-kilo-kit-init init --client all
-git add CLAUDE.md AGENTS.md GEMINI.md
-git commit -m "chore: configure Kilo-Kit C4 protocol"
-```
-
-*Or use the global git alias: `git kilo-init`*
+**Fuzzy Alias Example:** Calling `kilo_get_skill("tdd")` or `kilo_get_skill("clean-code")` resolves automatically to the full canonical skill path without needing directory names.
 
 ---
 
 ## 📊 Empirical Verification & Quality Benchmarks
 
-| Metric | Without Kilo-Kit (Vanilla Agent) | With Kilo-Kit v1.9.1 | Verification Mechanism |
+| Metric | Vanilla Agent (Prompt Rules Only) | With Kilo-Kit v1.9.1 | Verification Mechanism |
 | :--- | :--- | :--- | :--- |
-| **Silent Chained Tool Calls** | 65% on fast models (empty text outputs) | **0% (100% Enforced)** | Triple-Lock Schema + Sentinel Interceptor |
+| **Silent Chained Tool Calls** | 65% on fast models (empty text outputs) | **0% (100% Enforced)** | Inter-Tool Narration Protocol Badge |
 | **Ungrounded Code Mutations** | 42% of sessions (modifying unread files) | **0% (100% Blocked)** | Server-side Pre-flight Grounding Lock |
-| **Context Window Longevity** | Degrades at >30k tokens | **Sustained >150k tokens** | `kilo_compact_context` (40–70% token pruning) |
-| **Silent Regression Rate** | 28% of PRs | **< 2%** | 4D QA (Playwright + Given-When-Then criteria) |
-| **Tool Thrashing / Infinite Loops**| Common on complex bugs | **Terminated ≤ 3 loops** | Kilo-Sentinel Loop & Thrashing Tripwire |
-| **Self-Healing & Reasoning Recall**| Zero across sessions | **100% SQLite Persistence**| `cognitive_triangulations` & `katl_trajectories` |
-
----
-
-## 📖 Documentation Directory Index
-
-For detailed specifications, protocol definitions, and developer guides, explore the [`docs/`](docs/) directory:
-
-* 🏛️ [**Architecture Overview**](docs/architecture/ARCHITECTURE_DESIGN.md) - System topology, Cortex vs Limbs, and Memory schema.
-* 📜 [**C4 Protocol Specification**](docs/protocols/C4_SPECIFICATION.md) - 5-Gate lifecycle state transitions and invariant rules.
-* 🧰 [**MCP Tooling Reference**](docs/tools/TOOL_REFERENCE.md) - JSON schemas, error codes, and tool calling examples.
-* 📚 [**Skills Taxonomy & Authoring**](docs/skills/SKILL_TAXONOMY.md) - Skill catalog guidelines and authoring standard.
-* 📊 [**Benchmarks & Methodology**](docs/benchmarks/BENCHMARKS.md) - Token reduction experiments and SWE-bench alignment.
-* 🛡️ [**Security & Guardrails**](docs/security/SECURITY_GUARDRAILS.md) - Circuit breaker, input sanitization, and blast-radius control.
+| **Token Window Longevity** | Attention degrades at >30k tokens | **Sustained >150k tokens** | Smart Truncation & `kilo_compact_context` |
+| **Loop & Thrashing Runaway** | Common on difficult test failures | **Terminated ≤ 3 loops** | Kilo-Sentinel Loop & Thrashing Tripwire |
+| **Memory Recall Precision** | Naive string search / Stale context | **Sub-ms BM25 Ranking** | SQLite FTS5 Relevance Virtual Index |
+| **Test Verification Rigor** | Self-declared "everything works" | **100% Empirical Evidence** | Native Test Runner & Playwright Gate |
 
 ---
 
 ## 🧪 Development, Testing & Verification
 
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone https://github.com/VoDaiLocz/KILO-KIT.git
 cd KILO-KIT
-npm install
 
-# Run unit test suites (15/15 test files, 68/68 tests passing)
-npm test
+# 2. Build TypeScript package
+npm --prefix mcp run build
 
-# Run full health diagnostics
-npm run doctor
+# 3. Link globally
+npm link
 
-# Validate 100% of 180 skills against structural quality gates
+# 4. Run the full Vitest test suite (16 files, 77 tests)
+npm --prefix mcp test
+
+# 5. Run full 18-point system diagnostics
+kilo-kit-doctor
+
+# 6. Validate all 180 skills against YAML & structure standards
 node src/tools/validate-skill.js --all skills
 ```
 
@@ -272,4 +343,4 @@ node src/tools/validate-skill.js --all skills
 
 ## 📄 License
 
-Distributed under the Apache 2.0 License. See [LICENSE](LICENSE) for more details.
+Distributed under the **Apache 2.0 License**. See [LICENSE](LICENSE) for details.
