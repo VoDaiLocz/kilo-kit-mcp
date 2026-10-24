@@ -65,3 +65,32 @@ export function resolveWorkspacePath(targetPath: string, customBaseDir?: string)
   return customBaseDir ? path.resolve(customBaseDir, normalized) : fromCwd;
 }
 
+export function resolveExecutableInPath(command: string): string | null {
+  if (!command || typeof command !== "string") return null;
+
+  if (path.isAbsolute(command)) {
+    return existsSync(command) ? command : null;
+  }
+
+  const pathEnv = process.env.PATH ?? "";
+  const pathDirs = pathEnv.split(path.delimiter);
+  const extensions = process.platform === "win32" ? [".exe", ".cmd", ".bat", ""] : [""];
+
+  for (const dir of pathDirs) {
+    if (!dir) continue;
+    for (const ext of extensions) {
+      const fullPath = path.join(dir, command + ext);
+      try {
+        if (existsSync(fullPath)) {
+          return fullPath;
+        }
+      } catch {
+        // ignore EACCES or other filesystem errors
+      }
+    }
+  }
+
+  return null;
+}
+
+

@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 
+import { resolveExecutableInPath } from "./paths.js";
+
 const START_MARKER = "<!-- KILO-KIT:C4:START -->";
 const END_MARKER = "<!-- KILO-KIT:C4:END -->";
 const MAX_BOOTSTRAP_FILE_BYTES = 256 * 1024;
@@ -218,14 +220,19 @@ function writeFileAtomic(filePath: string, content: string): void {
   }
 }
 
+export interface SetupClientOptions {
+  mode?: "local" | "npx";
+}
+
 export interface SetupResult {
   client: string;
   configPath: string;
   action: "configured" | "already_configured" | "skipped";
+  command?: string;
   error?: string;
 }
 
-export function setupClientMcpConfigs(): SetupResult[] {
+export function setupClientMcpConfigs(options: SetupClientOptions = {}): SetupResult[] {
   const home = os.homedir();
   const results: SetupResult[] = [];
 
@@ -236,10 +243,35 @@ export function setupClientMcpConfigs(): SetupResult[] {
     // Non-fatal if environment has strict permission restrictions
   }
 
-  const kiloKitMcpEntry = {
-    command: "npx",
-    args: ["-y", "@vodailocz/kilo-kit-mcp"],
-  };
+  // Determine mode:
+  // 1. Explicit option
+  // 2. CLI flags --local / --npx
+  // 3. Auto-detect: if kilo-kit-mcp binary is in PATH, prefer local; otherwise npx
+  let selectedMode: "local" | "npx" = options.mode ?? "npx";
+  if (!options.mode) {
+    if (process.argv.includes("--local") || process.argv.includes("-l")) {
+      selectedMode = "local";
+    } else if (process.argv.includes("--npx")) {
+      selectedMode = "npx";
+    } else {
+      const localBinary = resolveExecutableInPath("kilo-kit-mcp");
+      selectedMode = localBinary ? "local" : "npx";
+    }
+  }
+
+  const kiloKitMcpEntry =
+    selectedMode === "local"
+      ? {
+          command: "kilo-kit-mcp",
+        }
+      : {
+          command: "npx",
+          args: ["-y", "@vodailocz/kilo-kit-mcp"],
+        };
+
+  const commandSummary =
+    kiloKitMcpEntry.command +
+    ((kiloKitMcpEntry as any).args ? ` ${(kiloKitMcpEntry as any).args.join(" ")}` : "");
 
   const clientTargets = [
     {
@@ -329,6 +361,7 @@ export function setupClientMcpConfigs(): SetupResult[] {
         client: target.name,
         configPath: target.path,
         action: existing ? "already_configured" : "configured",
+        command: commandSummary,
       });
     } catch (err: any) {
       results.push({
@@ -466,8 +499,21 @@ type CliCommand =
   | { type: "setup" };
 
 function parseArgs(argv: string[]): CliCommand {
+  const isSetupBin =
+    process.argv[1] &&
+    (process.argv[1].endsWith("kilo-kit-setup") || process.argv[1].endsWith("setup.js"));
   const command = argv[0];
-  if (command === "setup" || command === "install" || command === "global") {
+
+  if (
+    isSetupBin ||
+    !command ||
+    command === "setup" ||
+    command === "install" ||
+    command === "global" ||
+    command === "--local" ||
+    command === "-l" ||
+    command === "--npx"
+  ) {
     return { type: "setup" };
   }
 
@@ -525,15 +571,18 @@ function usage(): string {
     "🚀 Kilo-Kit CLI",
     "",
     "Commands:",
-    "  kilo-kit-init global (or setup)",
-    "    Automatically registers Kilo-Kit MCP into AI IDEs/Clients (Cursor, Claude, Windsurf, etc.)",
+    "  kilo-kit-setup (or kilo-kit-init setup | global) [--local | --npx]",
+    "    Automatically registers Kilo-Kit MCP into AI IDEs/Clients (GitHub Copilot, Cursor, Windsurf, Claude, etc.)",
+    "    --local: Configures direct 'kilo-kit-mcp' binary (zero latency, latest local build).",
+    "    --npx:   Configures '@vodailocz/kilo-kit-mcp' via npx remote package.",
     "    and configures Global Git Aliases (git kilo-init, git kilo-clone) for zero-config rollout.",
     "",
     "  kilo-kit-init init [--client gemini|codex|claude|all] [--dir <path>]",
     "    Bootstraps C4 protocol rule files into target project workspace.",
     "",
     "Examples:",
-    "  npx -y @vodailocz/kilo-kit-mcp global",
+    "  kilo-kit-setup --local",
+    "  kilo-kit-setup --npx",
     "  kilo-kit-init init --client all",
     "  kilo-kit-init init --client gemini --dir /path/to/project",
   ].join("\n");
@@ -561,12 +610,17 @@ export function setupGitGlobalAliases(): void {
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.type === "setup") {
-    console.log("🚀 Running Kilo-Kit Auto-Setup across AI clients...\n");
+    const isLocal = process.argv.includes("--local") || process.argv.includes("-l");
+    const isNpx = process.argv.includes("--npx");
+    const modeLabel = isLocal ? "LOCAL BINARY (kilo-kit-mcp)" : isNpx ? "REMOTE NPX" : "AUTO-DETECTED";
+
+    console.log(`🚀 Running Kilo-Kit Auto-Setup across AI clients (Mode: ${modeLabel})...\n`);
     console.log("📦 Configuring MCP Servers:");
     const results = setupClientMcpConfigs();
     for (const r of results) {
       const icon = r.action === "configured" ? "✅ Added" : r.action === "already_configured" ? "🔄 Updated" : "⚠️ Skipped";
-      console.log(`${icon} [${r.client}]: ${r.configPath}`);
+      const cmdInfo = r.command ? ` [${r.command}]` : "";
+      console.log(`${icon} [${r.client}]: ${r.configPath}${cmdInfo}`);
     }
     console.log("\n🏛️ Configuring Global C4 Protocol Rules:");
     const ruleResults = setupGlobalClientRules();
